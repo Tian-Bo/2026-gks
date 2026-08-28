@@ -1,4 +1,5 @@
-const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.kuailiebian.cn').replace(/\/+$/, '')
+// Keep the standalone page on the same production API used by the original merchant app.
+const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.liebiankuai.com').replace(/\/+$/, '')
 
 type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>

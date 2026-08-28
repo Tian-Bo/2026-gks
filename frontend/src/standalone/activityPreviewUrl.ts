@@ -1,4 +1,4 @@
-const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.kuailiebian.cn').replace(/\/+$/, '')
+const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.liebiankuai.com').replace(/\/+$/, '')
 const previewQueryKeys = [
   'activity_preview_url',
   'activityPreviewUrl',
