@@ -78,14 +78,14 @@
           第 {{ currentPage }} / {{ totalPages }} 页
         </div>
         <div class="flex items-center gap-[8px]">
-          <KlbButton size="sm" variant="secondary" fill="outline" class="!px-[12px]" :disabled="currentPage === 1"
+          <KlButton size="sm" variant="secondary" fill="outline" class="!px-[12px]" :disabled="currentPage === 1"
             @click="currentPage--">
             上一页
-          </KlbButton>
-          <KlbButton size="sm" variant="secondary" fill="outline" class="!px-[12px]"
+          </KlButton>
+          <KlButton size="sm" variant="secondary" fill="outline" class="!px-[12px]"
             :disabled="currentPage === totalPages" @click="currentPage++">
             下一页
-          </KlbButton>
+          </KlButton>
         </div>
       </div>
 
@@ -103,13 +103,13 @@
       </div>
     </div>
 
-    <KlbButton v-if="!readonly" size="lg" variant="primary" fill="solid"
+    <KlButton v-if="!readonly" size="lg" variant="primary" fill="solid"
       class="activity-product-selector__confirm mt-[28px] mb-[4px] w-full !justify-center !gap-[8px] !rounded-[16px]"
       :class="{ 'activity-selector-reveal': animate }" style="--activity-selector-reveal-delay: 500ms"
       :disabled="loading || !canConfirm" @click="emit('confirm')">
       <span class="mr-[8px] text-[20px] leading-none">↗</span>
       <span>确认并继续</span>
-    </KlbButton>
+    </KlButton>
   </div>
 </template>
 

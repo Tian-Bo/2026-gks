@@ -4,10 +4,12 @@
       class="ai-page-background pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(148,163,184,0.14)_0.8px,transparent_0.8px)] bg-[length:16px_16px]" />
     <header class="ai-page-header fixed inset-x-0 top-0 z-50 flex h-[72px] items-center justify-between px-[26px]">
       <div class="ai-logo-back-area">
-        <img class="h-[28px] w-[105px]" :src="aiLogo" alt="快灵帮" />
+        <img class="h-[28px] w-[105px]" :src="aiLogo" alt="快灵" />
         <div
+          v-if="showWorkbenchReturn"
           class="ai-logo-back-button absolute left-0 top-[58px] cursor-pointer flex w-[160px] h-[40px] items-center px-[12px] gap-[8px] rounded-[8px] bg-[#ffffff] c-[#000]"
-          @click="goBack">
+          @click="goBack"
+        >
           <i class="iconfont icon-youjiantou rotate-180 text-[18px] c-[#000]"></i>
           <span>回到工作台</span>
         </div>
@@ -25,9 +27,9 @@
           </span>
           <span class="ai-generation-task-entry__text">{{ generatingTaskText }}</span>
         </button>
-        <KlbHoverAction v-else icon-size="28px" @click="goHistory">
+        <KlHoverAction v-else icon-size="28px" @click="goHistory">
           <i class="iconfont icon-lishi1"></i>
-        </KlbHoverAction>
+        </KlHoverAction>
         <a-popover
           v-model:open="messagePanelOpen"
           trigger="click"
@@ -102,9 +104,9 @@
               </div>
             </div>
           </template>
-          <KlbHoverAction icon-size="28px">
+          <KlHoverAction icon-size="28px">
             <i class="iconfont icon-xiaoxi"></i>
-          </KlbHoverAction>
+          </KlHoverAction>
         </a-popover>
         <div
           class="cursor-pointer mx-[4px] box-border min-w-[79px] h-[28px] flex items-center justify-between gap-[6px] bg-[#0F182A] rounded-[8px] p-[3px]"
@@ -118,7 +120,7 @@
             {{ aiPointsBalanceText }}
           </div>
         </div>
-        <KlbUserAvatarDropdown placement="bottomRight" logout-only />
+        <KlUserAvatarDropdown placement="bottomRight" logout-only />
       </div>
     </header>
 
@@ -218,7 +220,7 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
                     <span class="ai-thinking-tooltip">快捷模式</span>
                   </div>
                 </div>
-                <KlbDropdown v-for="option in currentPromptOptions" :key="option.key"
+                <KlDropdown v-for="option in currentPromptOptions" :key="option.key"
                   :overlay-width="getPromptOptionOverlayWidth(option.key)" placement="bottomLeft"
                   overlay-class-name="ai-selector-dropdown">
                   <div
@@ -278,8 +280,8 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
                       </button>
                     </div>
                   </template>
-                </KlbDropdown>
-                <KlbDropdown v-if="showAiModelSelector" :overlay-width="300" placement="bottomLeft" overlay-class-name="ai-selector-dropdown">
+                </KlDropdown>
+                <KlDropdown v-if="showAiModelSelector" :overlay-width="300" placement="bottomLeft" overlay-class-name="ai-selector-dropdown">
                   <div
                     class="relative flex h-[36px] cursor-pointer items-center gap-[6px] rounded-full bg-[#F2F5FA] pl-[8px] pr-[16px] transition-colors"
                     aria-label="选择模型"
@@ -314,7 +316,7 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
                       </button>
                     </div>
                   </template>
-                </KlbDropdown>
+                </KlDropdown>
               </div>
 
               <template v-if="isGenerating">
@@ -422,7 +424,7 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
       @adopt="adoptInspiration"
       @toggle-like="toggleInspirationLike"
     />
-    <KlbContactServiceModal v-model="csModalOpen" />
+    <KlContactServiceModal v-model="csModalOpen" />
   </div>
 </template>
 
@@ -438,9 +440,9 @@ import { useRouter } from 'vue-router'
 import api from '../standalone/api'
 import type { AiInspirationItem } from '../standalone/types'
 import request from '../standalone/request'
-import KlbContactServiceModal from '../components/klb/KlbContactServiceModal.vue'
-import KlbDropdown from '../components/klb/KlbDropdown.vue'
-import KlbUserAvatarDropdown from '../components/klb/KlbUserAvatarDropdown.vue'
+import KlContactServiceModal from '../components/kl/KlContactServiceModal.vue'
+import KlDropdown from '../components/kl/KlDropdown.vue'
+import KlUserAvatarDropdown from '../components/kl/KlUserAvatarDropdown.vue'
 import { getStore } from '../standalone/storage'
 import { klbMessage } from '../standalone/klbMessage'
 import { buildActivityPreviewUrl, buildActivityPreviewUrlSync } from '../standalone/activityPreviewUrl'
@@ -573,6 +575,7 @@ const placeholderMap: Record<ModeKey, string> = {
 const maxPastedImageCount = 5
 
 const activeMode = ref<ModeKey>('activity')
+const showWorkbenchReturn = false
 const selectedThinkingMode = ref<'deep' | 'quick'>('deep')
 const selectedAiModel = ref(aiModelOptions[0].value)
 const showAiModelSelector = false
@@ -1606,35 +1609,9 @@ async function handleGenerate() {
   z-index: 2;
 }
 
-.ai-logo-back-area::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  width: 160px;
-  height: 112px;
-  content: '';
-}
-
 .ai-logo-back-area > img {
   position: relative;
   z-index: 1;
-}
-
-.ai-logo-back-button {
-  z-index: 2;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition:
-    opacity 0.18s ease,
-    visibility 0.18s ease;
-}
-
-.ai-logo-back-area:hover .ai-logo-back-button {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
 }
 
 .ai-thinking-tooltip {
@@ -2184,7 +2161,7 @@ async function handleGenerate() {
   padding-top: 8px;
 }
 
-:global(.ai-selector-dropdown .klb-dropdown-overlay__content) {
+:global(.ai-selector-dropdown .kl-dropdown-overlay__content) {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 4px 12px 4px rgba(47, 48, 49, 0.1);

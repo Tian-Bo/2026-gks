@@ -67,7 +67,7 @@
               <span class="ai-thinking-tooltip">快捷模式</span>
             </div>
           </div>
-          <KlbDropdown v-for="option in currentPromptOptions" :key="option.key"
+          <KlDropdown v-for="option in currentPromptOptions" :key="option.key"
             :overlay-width="getPromptOptionOverlayWidth(option.key)" placement="bottomLeft"
             overlay-class-name="ai-selector-dropdown">
             <div
@@ -127,8 +127,8 @@
                 </button>
               </div>
             </template>
-          </KlbDropdown>
-          <KlbDropdown v-if="showAiModelSelector" :overlay-width="300" placement="bottomLeft" overlay-class-name="ai-selector-dropdown">
+          </KlDropdown>
+          <KlDropdown v-if="showAiModelSelector" :overlay-width="300" placement="bottomLeft" overlay-class-name="ai-selector-dropdown">
             <div
               class="relative flex h-[36px] cursor-pointer items-center gap-[6px] rounded-full bg-[#F2F5FA] pl-[8px] pr-[16px] transition-colors"
               aria-label="选择模型"
@@ -163,7 +163,7 @@
                 </button>
               </div>
             </template>
-          </KlbDropdown>
+          </KlDropdown>
         </div>
 
         <template v-if="sendButtonState === 'working'">
@@ -494,7 +494,7 @@ watch(() => props.draftMessage, () => {
   padding-top: 8px;
 }
 
-:global(.ai-selector-dropdown .klb-dropdown-overlay__content) {
+:global(.ai-selector-dropdown .kl-dropdown-overlay__content) {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 4px 12px 4px rgba(47, 48, 49, 0.1);

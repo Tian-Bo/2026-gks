@@ -9,10 +9,10 @@ import Root from './Root.vue'
 import Chat from './App.vue'
 import AiHome from './views/AiHome.vue'
 import AiHistory from './views/AiHistory.vue'
-import KlbButton from './components/klb/KlbButton.vue'
-import KlbDateRangePicker from './components/klb/KlbDateRangePicker.vue'
-import KlbDropdown from './components/klb/KlbDropdown.vue'
-import KlbHoverAction from './components/klb/KlbHoverAction.vue'
+import KlButton from './components/kl/KlButton.vue'
+import KlDateRangePicker from './components/kl/KlDateRangePicker.vue'
+import KlDropdown from './components/kl/KlDropdown.vue'
+import KlHoverAction from './components/kl/KlHoverAction.vue'
 
 const app = createApp(Root)
 const router = createRouter({
@@ -26,8 +26,8 @@ const router = createRouter({
 })
 app.use(Antd)
 app.use(router)
-app.component('KlbButton', KlbButton)
-app.component('KlbDateRangePicker', KlbDateRangePicker)
-app.component('KlbDropdown', KlbDropdown)
-app.component('KlbHoverAction', KlbHoverAction)
+app.component('KlButton', KlButton)
+app.component('KlDateRangePicker', KlDateRangePicker)
+app.component('KlDropdown', KlDropdown)
+app.component('KlHoverAction', KlHoverAction)
 app.mount('#app')

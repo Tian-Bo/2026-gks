@@ -92,9 +92,9 @@
                 </div>
               </div>
             </template>
-            <KlbHoverAction icon-size="28px">
+            <KlHoverAction icon-size="28px">
               <i class="iconfont icon-xiaoxi"></i>
-            </KlbHoverAction>
+            </KlHoverAction>
           </a-popover>
           <div
             class="cursor-pointer mx-[4px] box-border min-w-[79px] h-[28px] flex items-center justify-between gap-[6px] bg-[#0F182A] rounded-[8px] p-[3px]"
@@ -362,7 +362,7 @@
       </section>
     </div>
 
-    <KlbContactServiceModal v-model="csModalOpen" />
+    <KlContactServiceModal v-model="csModalOpen" />
     <a-modal
       v-model:open="activitySuccessModalOpen"
       :width="400"
@@ -451,7 +451,7 @@ import TextType from './components/ai-chat/TextType.vue'
 import api from './standalone/api'
 import request from './standalone/request'
 const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png';
-import KlbContactServiceModal from './components/klb/KlbContactServiceModal.vue'
+import KlContactServiceModal from './components/kl/KlContactServiceModal.vue'
 import { resolveMainImageBackgroundColors } from './standalone/mainImageBackgroundColor'
 import { buildActivityPreviewUrl, buildActivityPreviewUrlSync } from './standalone/activityPreviewUrl'
 import { getStore } from './standalone/storage'
@@ -1266,7 +1266,7 @@ const promptTipsByMode = ref<Record<ModeKey, ActivitySuggestion[]>>({
 })
 const loadedPromptTipModes = ref<Partial<Record<ModeKey, boolean>>>({})
 const loadingPromptTipModes = ref<Partial<Record<ModeKey, boolean>>>({})
-const CHAT_COMPOSER_SELECTION_STORAGE_KEY = 'klb-ai-chat-composer-selection'
+const CHAT_COMPOSER_SELECTION_STORAGE_KEY = 'kl-ai-chat-composer-selection'
 
 const thinkingModeOptions: ThinkingModeOption[] = [
   { value: 'quick', label: '快速思考' },

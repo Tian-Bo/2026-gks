@@ -7,7 +7,7 @@ export type AiGenerationTask = {
 }
 
 const AI_GENERATION_TASK_STORAGE_KEY = 'KLB_AI_GENERATION_TASKS'
-const AI_GENERATION_TASK_EVENT = 'klb-ai-generation-tasks-change'
+const AI_GENERATION_TASK_EVENT = 'kl-ai-generation-tasks-change'
 const AI_GENERATION_TASK_MAX_AGE = 30 * 60 * 1000
 
 function canUseWindow() {

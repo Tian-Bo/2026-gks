@@ -7,12 +7,12 @@
     <slot />
 
     <template v-if="$slots.overlay" #overlay>
-      <div class="klb-dropdown-overlay__content" :style="overlayContentStyle">
+      <div class="kl-dropdown-overlay__content" :style="overlayContentStyle">
         <slot name="overlay" />
       </div>
     </template>
     <template v-else-if="menuProps" #overlay>
-      <div class="klb-dropdown-overlay__content" :style="overlayContentStyle">
+      <div class="kl-dropdown-overlay__content" :style="overlayContentStyle">
         <AMenu v-bind="menuProps" />
       </div>
     </template>
@@ -69,13 +69,13 @@ const emit = defineEmits<{
 
 const attrs = useAttrs()
 const mergedOverlayClassName = computed(() =>
-  ['klb-dropdown-overlay', props.overlayClassName].filter(Boolean).join(' '),
+  ['kl-dropdown-overlay', props.overlayClassName].filter(Boolean).join(' '),
 )
 const overlayContentStyle = computed(() => {
   if (props.overlayWidth === undefined)
     return undefined
   const width = typeof props.overlayWidth === 'number' ? `${props.overlayWidth}px` : props.overlayWidth
-  return { '--klb-dropdown-width': width, '--klb-dropdown-min-width': width }
+  return { '--kl-dropdown-width': width, '--kl-dropdown-min-width': width }
 })
 const menuProps = computed<Record<string, any> | undefined>(() =>
   props.menu?.items?.length ? props.menu : undefined,
@@ -121,12 +121,12 @@ function handleVisibleChange(value: boolean) {
 </script>
 
 <style lang="scss">
-.klb-dropdown-overlay {
+.kl-dropdown-overlay {
   font-family: 'PingFang SC', sans-serif;
 
-  .klb-dropdown-overlay__content {
-    width: var(--klb-dropdown-width, auto);
-    min-width: var(--klb-dropdown-min-width, auto);
+  .kl-dropdown-overlay__content {
+    width: var(--kl-dropdown-width, auto);
+    min-width: var(--kl-dropdown-min-width, auto);
   }
 }
 </style>

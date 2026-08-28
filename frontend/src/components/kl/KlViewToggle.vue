@@ -1,17 +1,17 @@
 <template>
-  <div class="klb-view-toggle" role="group">
+  <div class="kl-view-toggle" role="group">
     <button
       v-for="option in normalizedOptions"
       :key="option.value"
       type="button"
-      class="klb-view-toggle__item"
+      class="kl-view-toggle__item"
       :class="{ 'is-active': option.value === modelValue }"
       :style="getItemStyle(option)"
       @click="handleChange(option.value)"
     >
       <slot :name="getItemSlotName(option)" :option="option" :active="option.value === modelValue">
-        <span v-if="option.icon" class="klb-view-toggle__icon iconfont" :class="option.icon" />
-        <span v-if="option.label" class="klb-view-toggle__label">{{ option.label }}</span>
+        <span v-if="option.icon" class="kl-view-toggle__icon iconfont" :class="option.icon" />
+        <span v-if="option.label" class="kl-view-toggle__label">{{ option.label }}</span>
       </slot>
     </button>
   </div>
@@ -21,7 +21,7 @@
 import { computed } from 'vue'
 type ToggleValue = string | number
 
-export type KlbViewToggleOption = {
+export type KlViewToggleOption = {
   label?: string
   value: ToggleValue
   /** iconfont class，例如 icon-liebiaoshitu1 / icon-kapianshitu */
@@ -32,7 +32,7 @@ export type KlbViewToggleOption = {
 
 const props = withDefaults(defineProps<{
   modelValue?: ToggleValue
-  options?: KlbViewToggleOption[]
+  options?: KlViewToggleOption[]
 }>(), {
   modelValue: 'list',
   options: () => [
@@ -48,7 +48,7 @@ const emit = defineEmits<{
 
 const normalizedOptions = computed(() => props.options)
 
-function getItemStyle(option: KlbViewToggleOption) {
+function getItemStyle(option: KlViewToggleOption) {
   if (option.width == null) return undefined
   const width = typeof option.width === 'number' ? `${option.width}px` : option.width
   return { width }
@@ -60,13 +60,13 @@ function handleChange(value: ToggleValue) {
   emit('change', value)
 }
 
-function getItemSlotName(option: KlbViewToggleOption) {
+function getItemSlotName(option: KlViewToggleOption) {
   return `item-${option.value}`
 }
 </script>
 
 <style scoped lang="scss">
-.klb-view-toggle {
+.kl-view-toggle {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -76,7 +76,7 @@ function getItemSlotName(option: KlbViewToggleOption) {
   background: #f5f6f7;
 }
 
-.klb-view-toggle__item {
+.kl-view-toggle__item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -99,12 +99,12 @@ function getItemSlotName(option: KlbViewToggleOption) {
   }
 }
 
-.klb-view-toggle__icon {
+.kl-view-toggle__icon {
   font-size: 20px;
   line-height: 1;
 }
 
-.klb-view-toggle__label {
+.kl-view-toggle__label {
   white-space: nowrap;
 }
 </style>

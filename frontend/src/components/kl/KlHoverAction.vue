@@ -1,9 +1,9 @@
 <template>
   <button
     type="button"
-    class="klb-hover-action font-['PingFang_SC']"
+    class="kl-hover-action font-['PingFang_SC']"
     :class="[
-      `klb-hover-action--${size}`,
+      `kl-hover-action--${size}`,
       {
         'is-filled': filled,
         'is-danger': danger,
@@ -59,10 +59,10 @@ function handleClick(event: MouseEvent) {
 }
 
 const customStyle = computed(() => ({
-  '--klb-hover-action-width': resolveUnit(props.containerWidth ?? props.width),
-  '--klb-hover-action-height': resolveUnit(props.containerHeight ?? props.height),
-  '--klb-hover-action-radius': resolveUnit(props.containerRadius ?? props.radius),
-  '--klb-hover-action-icon-size': props.iconSize ? normalizeUnit(props.iconSize) : undefined,
+  '--kl-hover-action-width': resolveUnit(props.containerWidth ?? props.width),
+  '--kl-hover-action-height': resolveUnit(props.containerHeight ?? props.height),
+  '--kl-hover-action-radius': resolveUnit(props.containerRadius ?? props.radius),
+  '--kl-hover-action-icon-size': props.iconSize ? normalizeUnit(props.iconSize) : undefined,
 }))
 
 function normalizeUnit(value: string | number) {
@@ -76,7 +76,7 @@ function resolveUnit(value?: string | number) {
 </script>
 
 <style scoped lang="scss">
-.klb-hover-action {
+.kl-hover-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -93,39 +93,39 @@ function resolveUnit(value?: string | number) {
   }
 }
 
-.klb-hover-action--md {
-  width: var(--klb-hover-action-width, 32px);
-  height: var(--klb-hover-action-height, 32px);
-  border-radius: var(--klb-hover-action-radius, 8px);
+.kl-hover-action--md {
+  width: var(--kl-hover-action-width, 32px);
+  height: var(--kl-hover-action-height, 32px);
+  border-radius: var(--kl-hover-action-radius, 8px);
 }
 
-.klb-hover-action--sm {
-  width: var(--klb-hover-action-width, 32px);
-  height: var(--klb-hover-action-height, 32px);
-  border-radius: var(--klb-hover-action-radius, 8px);
+.kl-hover-action--sm {
+  width: var(--kl-hover-action-width, 32px);
+  height: var(--kl-hover-action-height, 32px);
+  border-radius: var(--kl-hover-action-radius, 8px);
 }
 
-.klb-hover-action.is-filled {
+.kl-hover-action.is-filled {
   background: #f1f3f5;
 }
 
-.klb-hover-action.is-danger:hover,
-.klb-hover-action.is-danger.is-filled {
+.kl-hover-action.is-danger:hover,
+.kl-hover-action.is-danger.is-filled {
   color: #e62222;
 }
 
-.klb-hover-action.is-disabled {
+.kl-hover-action.is-disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
 :deep(.iconfont),
 :deep(svg) {
-  font-size: var(--klb-hover-action-icon-size, inherit);
+  font-size: var(--kl-hover-action-icon-size, inherit);
 }
 
 :deep(svg) {
-  width: var(--klb-hover-action-icon-size, inherit);
-  height: var(--klb-hover-action-icon-size, inherit);
+  width: var(--kl-hover-action-icon-size, inherit);
+  height: var(--kl-hover-action-icon-size, inherit);
 }
 </style>

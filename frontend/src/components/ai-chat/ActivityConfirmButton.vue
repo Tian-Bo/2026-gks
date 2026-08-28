@@ -1,6 +1,6 @@
 <template>
   <div class="rounded-[18px] py-[16px]">
-    <KlbButton
+    <KlButton
       size="lg"
       variant="primary"
       fill="solid"
@@ -13,7 +13,7 @@
         <span class="mr-[8px] text-[20px] leading-none">↗</span>
         <span>{{ buttonText }}</span>
       </span>
-    </KlbButton>
+    </KlButton>
   </div>
 </template>
 

@@ -80,21 +80,21 @@
           {{ customDateOption.label }}
         </button>
 
-        <KlbDateRangePicker v-else-if="customDateOption" ref="customDatePickerRef" :model-value="pickerValue"
+        <KlDateRangePicker v-else-if="customDateOption" ref="customDatePickerRef" :model-value="pickerValue"
           :allow-clear="false" :disabled="readonly" format="YYYY-MM-DD" width="100%" :placeholder="['开始时间', '结束时间']"
           :class="['activity-brief-form__date-picker', 'col-span-2 min-w-0 w-full', { 'is-active': isCustomDateActive }]"
-          style="--klb-date-height: 56px; --klb-date-radius: 16px; --klb-date-gray-bg: #F2F4F7; --klb-date-input-size: 14px; --klb-date-input-weight: 500; --klb-date-separator-size: 14px; --klb-date-separator-weight: 500;"
+          style="--kl-date-height: 56px; --kl-date-radius: 16px; --kl-date-gray-bg: #F2F4F7; --kl-date-input-size: 14px; --kl-date-input-weight: 500; --kl-date-separator-size: 14px; --kl-date-separator-weight: 500;"
           @update:model-value="handleDateRangeChange" @open-change="handleCustomDateOpenChange" />
       </div>
     </div>
 
-    <KlbButton v-if="(showGoalSection || showDateSection) && !readonly" size="lg" variant="primary" fill="solid"
+    <KlButton v-if="(showGoalSection || showDateSection) && !readonly" size="lg" variant="primary" fill="solid"
       class="activity-brief-form__confirm mt-[28px] mb-[4px] w-full !justify-center !gap-[8px] !rounded-[16px]" :disabled="!canConfirm"
       :style="getConfirmRevealStyle()"
       @click="emit('confirm')">
       <span class="mr-[8px] text-[20px] leading-none">↗</span>
       <span>确认并继续</span>
-    </KlbButton>
+    </KlButton>
   </div>
 </template>
 
@@ -247,16 +247,16 @@ watch(showCustomDatePicker, async (visible) => {
   will-change: opacity, transform;
 }
 
-.activity-brief-form__date-picker :deep(.klb-date-range-picker__control) {
+.activity-brief-form__date-picker :deep(.kl-date-range-picker__control) {
   border: 2px solid transparent !important;
   display: flex;
   align-items: center;
   width: 100%;
 }
 
-.activity-brief-form__date-picker.is-active :deep(.klb-date-range-picker__control),
-.activity-brief-form__date-picker.is-active :deep(.klb-date-range-picker__control:hover),
-.activity-brief-form__date-picker.is-active :deep(.klb-date-range-picker__control.ant-picker-focused) {
+.activity-brief-form__date-picker.is-active :deep(.kl-date-range-picker__control),
+.activity-brief-form__date-picker.is-active :deep(.kl-date-range-picker__control:hover),
+.activity-brief-form__date-picker.is-active :deep(.kl-date-range-picker__control.ant-picker-focused) {
   border: 2px solid #E62222 !important;
   background: #FFF7F7 !important;
   box-shadow: none !important;

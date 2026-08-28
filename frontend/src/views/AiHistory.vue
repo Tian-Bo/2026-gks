@@ -29,7 +29,7 @@
           </nav>
 
           <div class="ai-history-toolbar__actions">
-            <KlbSearchInput
+            <KlSearchInput
               v-model="keyword"
               class="ai-history-search"
               variant="white"
@@ -39,7 +39,7 @@
               search-text="搜索"
             />
 
-            <KlbDropdown
+            <KlDropdown
               v-if="viewMode === 'list'"
               :menu="statusFilterMenu"
               placement="bottomRight"
@@ -49,9 +49,9 @@
                 <span>{{ statusFilterLabel }}</span>
                 <i class="iconfont icon-youjiantou ai-history-filter__arrow" aria-hidden="true"></i>
               </button>
-            </KlbDropdown>
+            </KlDropdown>
 
-            <KlbViewToggle
+            <KlViewToggle
               v-model="viewMode"
               :options="viewOptions"
               class="ai-history-view-toggle"
@@ -116,11 +116,11 @@
                   {{ inferModeLabel(item) }}
                 </div>
 
-                <KlbDropdown :menu="getHistoryActionMenu(item)" placement="bottomRight" overlay-class-name="ai-history-action-dropdown">
+                <KlDropdown :menu="getHistoryActionMenu(item)" placement="bottomRight" overlay-class-name="ai-history-action-dropdown">
                   <button type="button" class="history-card__more" @click.stop aria-label="更多操作">
                     <i class="iconfont icon-gengduo" aria-hidden="true"></i>
                   </button>
-                </KlbDropdown>
+                </KlDropdown>
 
                 <div class="history-card__image-wrap">
                   <img
@@ -204,7 +204,7 @@
 
             <footer class="ai-history-list-panel__footer">
               <span>共 {{ filteredHistoryList.length }} 条</span>
-              <KlbPagination
+              <KlPagination
                 v-model:current="page"
                 :page-size="pageSize"
                 :total="filteredHistoryList.length"
@@ -216,7 +216,7 @@
 
           <footer v-if="viewMode === 'grid'" class="ai-history-grid-footer">
             <span>共 {{ filteredHistoryList.length }} 条</span>
-            <KlbPagination
+            <KlPagination
               v-model:current="page"
               :page-size="pageSize"
               :total="filteredHistoryList.length"
@@ -240,10 +240,10 @@ import type { AiGenerationTask } from '../shared/generationTaskStatus'
 import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../standalone/api'
-import KlbDropdown from '../components/klb/KlbDropdown.vue'
-import KlbPagination from '../components/klb/KlbPagination.vue'
-import KlbSearchInput from '../components/klb/KlbSearchInput.vue'
-import KlbViewToggle from '../components/klb/KlbViewToggle.vue'
+import KlDropdown from '../components/kl/KlDropdown.vue'
+import KlPagination from '../components/kl/KlPagination.vue'
+import KlSearchInput from '../components/kl/KlSearchInput.vue'
+import KlViewToggle from '../components/kl/KlViewToggle.vue'
 import { getStore } from '../standalone/storage'
 import { klbMessage } from '../standalone/klbMessage'
 import LottieStar from '../components/ai-chat/LottieStar.vue'
@@ -1255,16 +1255,16 @@ function removeHistoryItem(item: AiConversation) {
   }
 }
 
-:deep(.ai-history-search.klb-search-input--white .ant-input-wrapper.ant-input-group) {
+:deep(.ai-history-search.kl-search-input--white .ant-input-wrapper.ant-input-group) {
   border-color: transparent;
   background: #fff;
 }
 
-:deep(.ai-history-view-toggle .klb-view-toggle__item) {
+:deep(.ai-history-view-toggle .kl-view-toggle__item) {
   color: #0f182a;
 }
 
-:deep(.ai-history-view-toggle .klb-view-toggle__item.is-active) {
+:deep(.ai-history-view-toggle .kl-view-toggle__item.is-active) {
   background: #ffffff;
 }
 

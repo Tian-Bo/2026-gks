@@ -6,12 +6,12 @@
     :loading="loading"
     :ghost="false"
     :danger="false"
-    class="klb-button font-['PingFang_SC'] border-solid!"
+    class="kl-button font-['PingFang_SC'] border-solid!"
     :class="customClass"
     @click="onClick"
   >
     <template v-if="useIconSlot" #icon>
-      <span class="klb-button__left inline-flex items-center justify-center" aria-hidden="true">
+      <span class="kl-button__left inline-flex items-center justify-center" aria-hidden="true">
         <template v-if="variant === 'icon'">
           <slot name="icon">
             <slot />
@@ -29,14 +29,14 @@
     <template v-if="variant !== 'icon'">
       <span
         v-if="$slots.right || $slots.rightIcon"
-        class="klb-button__row inline-flex min-w-0 max-w-full flex-1 items-center justify-center gap-x-[6px]"
+        class="kl-button__row inline-flex min-w-0 max-w-full flex-1 items-center justify-center gap-x-[6px]"
       >
         <span
-          class="klb-button__label min-w-0 flex items-center [font-size:inherit] [line-height:1.15] [-webkit-font-smoothing:antialiased]"
+          class="kl-button__label min-w-0 flex items-center [font-size:inherit] [line-height:1.15] [-webkit-font-smoothing:antialiased]"
         >
           <slot />
         </span>
-        <span class="klb-button__right inline-flex shrink-0 items-center" aria-hidden="true">
+        <span class="kl-button__right inline-flex shrink-0 items-center" aria-hidden="true">
           <slot name="right">
             <slot name="rightIcon" />
           </slot>
@@ -54,9 +54,9 @@ import { computed, useSlots } from 'vue'
 
 const slots = useSlots()
 
-type KlbButtonSize = 'sm' | 'md' | 'lg'
-type KlbButtonVariant = 'accent' | 'primary' | 'secondary' | 'icon' | 'text'
-type KlbButtonFill = 'solid' | 'outline'
+type KlButtonSize = 'sm' | 'md' | 'lg'
+type KlButtonVariant = 'accent' | 'primary' | 'secondary' | 'icon' | 'text'
+type KlButtonFill = 'solid' | 'outline'
 
 /**
  * 设计目标：
@@ -67,9 +67,9 @@ type KlbButtonFill = 'solid' | 'outline'
  * - 通过类名覆盖实现产品侧统一风格（不依赖 AntD 的主题变量）
  */
 const props = withDefaults(defineProps<{
-  size?: KlbButtonSize
-  variant?: KlbButtonVariant
-  fill?: KlbButtonFill
+  size?: KlButtonSize
+  variant?: KlButtonVariant
+  fill?: KlButtonFill
   /** 胶囊按钮：border-radius 200px */
   pill?: boolean
   disabled?: boolean
@@ -103,7 +103,7 @@ function onClick(e: MouseEvent) {
 }
 
 const antSize = computed(() => {
-  // KlbButton 的 size 与 AntD 的 size 做最小映射
+  // KlButton 的 size 与 AntD 的 size 做最小映射
   if (props.size === 'sm') return 'small'
   if (props.size === 'lg') return 'large'
   return 'middle'
@@ -199,19 +199,19 @@ const customClass = computed(() => {
 
 <style scoped>
 /* 左侧/右侧内联 SVG 去基线间隙；右侧列 line-height:0 避免多出一层行高盒，便于与文字竖直居中 */
-.klb-button :deep(.klb-button__left svg),
-.klb-button :deep(.klb-button__row svg) {
+.kl-button :deep(.kl-button__left svg),
+.kl-button :deep(.kl-button__row svg) {
   display: block;
   flex-shrink: 0;
 }
-.klb-button :deep(.klb-button__right) {
+.kl-button :deep(.kl-button__right) {
   line-height: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 /* 有右图标时，中间文字列与图标本征高度对齐 */
-.klb-button :deep(.klb-button__row) {
+.kl-button :deep(.kl-button__row) {
   display: inline-flex;
   align-items: center;
 }

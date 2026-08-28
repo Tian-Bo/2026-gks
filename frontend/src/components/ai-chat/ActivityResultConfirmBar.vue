@@ -5,17 +5,17 @@
     </div>
 
     <div class="activity-result-confirm-bar__actions grid grid-cols-2 gap-[16px]" :class="{ 'is-animated': animate }">
-      <KlbButton size="lg" variant="secondary" fill="solid" pill class="!justify-center !text-[#0F182A]"
+      <KlButton size="lg" variant="secondary" fill="solid" pill class="!justify-center !text-[#0F182A]"
         @click="emit('adopt')">
         {{ adoptText }}
-      </KlbButton>
+      </KlButton>
 
-      <KlbButton size="lg" variant="accent" fill="solid" pill class="!justify-center" @click="emit('publish')">
+      <KlButton size="lg" variant="accent" fill="solid" pill class="!justify-center" @click="emit('publish')">
         <template #left>
           <span class="text-[18px] leading-none">↗</span>
         </template>
         {{ publishText }}
-      </KlbButton>
+      </KlButton>
     </div>
   </div>
 </template>

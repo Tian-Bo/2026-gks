@@ -1,6 +1,6 @@
 <template>
   <div
-    class="klb-date-range-picker font-['PingFang_SC']"
+    class="kl-date-range-picker font-['PingFang_SC']"
     :class="{ 'is-disabled': disabled, 'has-clear': effectiveAllowClear }"
     :style="rootStyle"
   >
@@ -15,19 +15,19 @@
       :get-popup-container="getPopupContainer"
       separator="至"
       :placeholder="placeholder"
-      class="klb-date-range-picker__control"
+      class="kl-date-range-picker__control"
       @update:value="onUpdateValue"
       @change="onChange"
       @openChange="onOpenChange"
     >
       <template #suffixIcon>
-        <i class="iconfont icon-rili klb-date-range-picker__icon" aria-hidden="true" />
+        <i class="iconfont icon-rili kl-date-range-picker__icon" aria-hidden="true" />
       </template>
       <template #separator>
-        <span class="klb-date-range-picker__separator">至</span>
+        <span class="kl-date-range-picker__separator">至</span>
       </template>
       <template #clearIcon>
-        <span class="klb-date-range-picker__clear" aria-hidden="true">×</span>
+        <span class="kl-date-range-picker__clear" aria-hidden="true">×</span>
       </template>
     </a-range-picker>
   </div>
@@ -84,7 +84,7 @@ const rootStyle = computed<StyleValue>(() => {
 const hasValue = computed(() => Boolean(props.modelValue?.[0] && props.modelValue?.[1]));
 const effectiveAllowClear = computed(() => props.allowClear && hasValue.value);
 
-/** 与 KlbTableFilterBar 一致：布尔 `showTime` 默认两次点日历即完成区间，不再用面板「确定」分步；对象 `showTime` 仍走 Ant 原逻辑（通常含确定） */
+/** 与 KlTableFilterBar 一致：布尔 `showTime` 默认两次点日历即完成区间，不再用面板「确定」分步；对象 `showTime` 仍走 Ant 原逻辑（通常含确定） */
 const useSequentialDatePick = computed(() => {
   if (props.sequentialWithTime === false) return false;
   if (props.sequentialWithTime === true) return true;
@@ -143,60 +143,60 @@ function onOpenChange(open: boolean) {
 </script>
 
 <style scoped lang="scss">
-.klb-date-range-picker {
-  --klb-date-height: 36px;
-  --klb-date-radius: 8px;
-  --klb-date-gray-bg: #f5f6f7;
-  --klb-date-border: #e3e9f1;
-  --klb-date-placeholder: #99a7bb;
-  --klb-date-text: #0f182a;
-  --klb-date-muted: #64748b;
-  --klb-date-red: #e62222;
-  --klb-date-input-size: 12px;
-  --klb-date-input-weight: 400;
-  --klb-date-separator-size: 14px;
-  --klb-date-separator-weight: 500;
+.kl-date-range-picker {
+  --kl-date-height: 36px;
+  --kl-date-radius: 8px;
+  --kl-date-gray-bg: #f5f6f7;
+  --kl-date-border: #e3e9f1;
+  --kl-date-placeholder: #99a7bb;
+  --kl-date-text: #0f182a;
+  --kl-date-muted: #64748b;
+  --kl-date-red: #e62222;
+  --kl-date-input-size: 12px;
+  --kl-date-input-weight: 400;
+  --kl-date-separator-size: 14px;
+  --kl-date-separator-weight: 500;
 
   display: inline-block;
   max-width: 100%;
-  height: var(--klb-date-height);
+  height: var(--kl-date-height);
   line-height: 1;
 }
 
-.klb-date-range-picker__control {
+.kl-date-range-picker__control {
   width: 100%;
-  height: var(--klb-date-height);
-  min-height: var(--klb-date-height);
+  height: var(--kl-date-height);
+  min-height: var(--kl-date-height);
   padding: 0 12px;
   border: 0 !important;
-  border-radius: var(--klb-date-radius);
-  background: var(--klb-date-gray-bg) !important;
+  border-radius: var(--kl-date-radius);
+  background: var(--kl-date-gray-bg) !important;
   box-shadow: none !important;
   display: flex;
   align-items: center;
 }
 
-.klb-date-range-picker__icon {
+.kl-date-range-picker__icon {
   font-size: 18px;
   line-height: 1;
-  color: var(--klb-date-text);
+  color: var(--kl-date-text);
 }
 
-.klb-date-range-picker__control:hover,
-.klb-date-range-picker__control.ant-picker-focused {
-  background: var(--klb-date-gray-bg) !important;
+.kl-date-range-picker__control:hover,
+.kl-date-range-picker__control.ant-picker-focused {
+  background: var(--kl-date-gray-bg) !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
 
-.klb-date-range-picker__clear {
+.kl-date-range-picker__clear {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  color: var(--klb-date-muted);
+  color: var(--kl-date-muted);
   font-size: 16px;
   line-height: 1;
 }
@@ -235,25 +235,25 @@ function onOpenChange(open: boolean) {
 }
 
 :deep(.ant-picker-input > input) {
-  color: var(--klb-date-text);
-  font-size: var(--klb-date-input-size);
-  font-weight: var(--klb-date-input-weight);
+  color: var(--kl-date-text);
+  font-size: var(--kl-date-input-size);
+  font-weight: var(--kl-date-input-weight);
   line-height: 1;
 }
 
 :deep(.ant-picker-input > input::placeholder) {
-  color: var(--klb-date-placeholder);
+  color: var(--kl-date-placeholder);
 }
 
-.klb-date-range-picker__separator {
+.kl-date-range-picker__separator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   padding: 0 8px;
-  color: var(--klb-date-text);
-  font-size: var(--klb-date-separator-size);
-  font-weight: var(--klb-date-separator-weight);
+  color: var(--kl-date-text);
+  font-size: var(--kl-date-separator-size);
+  font-weight: var(--kl-date-separator-weight);
   line-height: 1;
 }
 
@@ -272,7 +272,7 @@ function onOpenChange(open: boolean) {
   justify-content: center;
   width: 18px;
   margin-left: 8px;
-  color: var(--klb-date-text);
+  color: var(--kl-date-text);
 }
 
 :deep(.ant-picker-clear) {
@@ -282,16 +282,16 @@ function onOpenChange(open: boolean) {
   justify-content: center;
   width: 18px;
   height: 18px;
-  background: var(--klb-date-gray-bg) !important;
-  color: var(--klb-date-muted);
+  background: var(--kl-date-gray-bg) !important;
+  color: var(--kl-date-muted);
   z-index: 2;
 }
 
-.klb-date-range-picker.has-clear :deep(.ant-picker:hover .ant-picker-suffix) {
+.kl-date-range-picker.has-clear :deep(.ant-picker:hover .ant-picker-suffix) {
   opacity: 0;
 }
 
-.klb-date-range-picker.is-disabled {
+.kl-date-range-picker.is-disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

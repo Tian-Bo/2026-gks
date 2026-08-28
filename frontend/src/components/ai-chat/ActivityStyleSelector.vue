@@ -56,12 +56,12 @@
       </div>
     </div>
 
-    <KlbButton v-if="!readonly" size="lg" variant="primary" fill="solid"
+    <KlButton v-if="!readonly" size="lg" variant="primary" fill="solid"
       class="mt-[28px] mb-[4px] w-full !justify-center !gap-[8px] !rounded-[16px]" :class="{ 'activity-style-selector__reveal': animate }" style="--activity-style-selector-reveal-delay: 600ms" :disabled="!canConfirm"
       @click="emit('confirm')">
       <span class="text-[20px] leading-none">↗</span>
       <span>确认并继续</span>
-    </KlbButton>
+    </KlButton>
   </div>
 </template>
 

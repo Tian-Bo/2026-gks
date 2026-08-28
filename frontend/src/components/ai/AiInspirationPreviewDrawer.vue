@@ -1,5 +1,5 @@
 <template>
-  <KlbBottomDrawer
+  <KlBottomDrawer
     v-model="open"
     :show-header="false"
     :show-close="true"
@@ -29,11 +29,11 @@
               <span class="ai-inspiration-preview__brand-icon">
                 <img :src="displayAuthorIcon" alt="">
               </span>
-              <span class="ai-inspiration-preview__brand-name">{{ item.author || '快裂变出品' }}</span>
+              <span class="ai-inspiration-preview__brand-name">{{ item.author || '快灵出品' }}</span>
             </div>
 
             <div class="ai-inspiration-preview__actions">
-              <KlbHoverAction
+              <KlHoverAction
                 class="ai-inspiration-preview__icon-btn"
                 :class="{ 'is-liked': item.isLiked }"
                 icon-size="16px"
@@ -41,11 +41,11 @@
                 @click="emit('toggleLike', item)"
               >
                 <i class="iconfont icon-hongxin"></i>
-              </KlbHoverAction>
+              </KlHoverAction>
               <span class="ai-inspiration-preview__count">{{ item.likeCount ?? item.likes ?? 0 }}</span>
-              <KlbHoverAction class="ai-inspiration-preview__icon-btn" icon-size="16px" aria-label="分享">
+              <KlHoverAction class="ai-inspiration-preview__icon-btn" icon-size="16px" aria-label="分享">
                 <i class="iconfont icon-fenxiang"></i>
-              </KlbHoverAction>
+              </KlHoverAction>
             </div>
           </header>
 
@@ -67,13 +67,13 @@
         </aside>
       </div>
     </div>
-  </KlbBottomDrawer>
+  </KlBottomDrawer>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import KlbHoverAction from '../klb/KlbHoverAction.vue'
-import KlbBottomDrawer from '../klb/KlbBottomDrawer.vue'
+import KlHoverAction from '../kl/KlHoverAction.vue'
+import KlBottomDrawer from '../kl/KlBottomDrawer.vue'
 import PreviewMiniProgramHeader from '../preview/PreviewMiniProgramHeader.vue'
 
 type AiInspirationPreviewItem = {
