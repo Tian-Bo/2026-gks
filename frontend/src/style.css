@@ -5,6 +5,24 @@
 }
 
 :root {
+  --ai-working-text-gradient: linear-gradient(
+    96.934deg,
+    #0f182a 0%,
+    #0f182a 12%,
+    #7d52c5 19%,
+    #9053cd 25%,
+    #7d52c5 31%,
+    #0f182a 38%,
+    #0f182a 50%,
+    #0f182a 62%,
+    #7d52c5 69%,
+    #9053cd 75%,
+    #7d52c5 81%,
+    #0f182a 88%,
+    #0f182a 100%
+  );
+  --ai-working-text-gradient-size: 200% 100%;
+  --ai-working-text-shine-duration: 2s;
   font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   color: #0f182a;
   background: #f1f3f5;
