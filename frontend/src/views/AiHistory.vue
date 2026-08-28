@@ -231,6 +231,7 @@
         </div>
       </section>
     </main>
+    <KlLoginGuideModal v-model="loginGuideOpen" @authenticated="handleLoginAuthenticated" />
   </div>
 </template>
 
@@ -239,8 +240,9 @@ import type { AiConversation, AiMessage } from '../standalone/types'
 import type { AiGenerationTask } from '../shared/generationTaskStatus'
 import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../standalone/api'
+import api, { hasAiAccessToken } from '../standalone/api'
 import KlDropdown from '../components/kl/KlDropdown.vue'
+import KlLoginGuideModal from '../components/kl/KlLoginGuideModal.vue'
 import KlPagination from '../components/kl/KlPagination.vue'
 import KlSearchInput from '../components/kl/KlSearchInput.vue'
 import KlViewToggle from '../components/kl/KlViewToggle.vue'
@@ -282,6 +284,7 @@ const statusFilter = ref<HistoryStatusFilter>('all')
 const viewMode = ref<HistoryViewMode>('grid')
 const page = ref(1)
 const isHistoryLoading = ref(false)
+const loginGuideOpen = ref(false)
 let unsubscribeGenerationTasks: (() => void) | null = null
 
 const viewOptions = [
@@ -353,6 +356,10 @@ watch([filteredHistoryList, pageSize], () => {
 onMounted(() => {
   refreshGenerationTasks()
   unsubscribeGenerationTasks = subscribeAiGenerationTasks(refreshGenerationTasks)
+  if (!hasAiAccessToken()) {
+    loginGuideOpen.value = true
+    return
+  }
   void fetchHistoryList()
 })
 
@@ -363,6 +370,10 @@ onUnmounted(() => {
 
 function refreshGenerationTasks() {
   generationTasks.value = getAiGenerationTasks()
+}
+
+function handleLoginAuthenticated() {
+  window.location.reload()
 }
 
 function getCurrentShopId() {
