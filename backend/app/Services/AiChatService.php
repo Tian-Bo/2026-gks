@@ -114,32 +114,16 @@ class AiChatService
         }
         $conversation = $assistant->conversation;
         $isPoster = $conversation->scene === AiCatalog::POSTER_SCENE || data_get($assistant->meta, 'mode') === 'poster';
-        $text = $isPoster
-            ? '我已拆解海报主题、目标人群和画面风格，正在生成主视觉方案。'
-            : '我已理解你的活动诉求，接下来先确认活动目标和时间，再为你生成活动方案。';
-        $components = $isPoster ? [[
-            'card_id' => $this->businessId('poster'), 'type' => 'poster_image_preview', 'status' => 'completed',
-            'title' => 'AI 海报预览', 'image_url' => AiCatalog::POSTER_IMAGE,
-            'poster' => ['url' => AiCatalog::POSTER_IMAGE],
-        ]] : [[
-            'card_id' => $this->businessId('goal'), 'type' => 'activity_goal_duration_selector',
-            'title' => '先确认活动目标和时间', 'step_key' => 'activity_goal_duration',
-            'sections' => [
-                ['section_key' => 'goal', 'title' => '本次活动的核心目标是什么？', 'options' => [
-                    ['value' => '拉新获客', 'label' => '拉新获客'], ['value' => '老客复购', 'label' => '老客复购'], ['value' => '会员储值', 'label' => '会员储值'],
-                ]],
-                ['section_key' => 'duration', 'title' => '活动计划的起止时间是？', 'options' => [
-                    ['value' => '最近10天', 'label' => '最近 10 天'], ['value' => 'custom_range', 'label' => '自定义时间', 'action' => 'open_date_picker'],
-                ]],
-            ],
-        ]];
+        $reply = $isPoster ? $this->posterReply() : $this->activityReply($conversation);
+        $text = $reply['text'];
+        $components = $reply['components'];
         $seq = 1;
         $base = function () use (&$seq, $assistant, $conversation): array {
             return ['conversation_id' => $conversation->conversation_id, 'assistant_message_id' => $assistant->message_id, 'seq' => $seq++, 'created_at' => now()->toDateTimeString()];
         };
         $emit('connected', $base());
         $emit('message_start', $base());
-        $emit('thinking_delta', array_merge($base(), ['delta' => $isPoster ? '正在构思画面结构和视觉风格...' : '正在拆解目标、商品与活动周期...']));
+        $emit('thinking_delta', array_merge($base(), ['delta' => $reply['thinking']]));
         foreach (preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY) as $char) {
             if ($this->isStopped($assistant->message_id)) {
                 $emit('done', array_merge($base(), ['finish_reason' => 'stopped']));
@@ -159,10 +143,314 @@ class AiChatService
         if ($isPoster) {
             $meta['poster'] = ['url' => AiCatalog::POSTER_IMAGE];
         }
+        if (!empty($reply['activity'])) {
+            $meta['activity'] = $reply['activity'];
+        }
         $assistant->update(['status' => 'completed', 'content' => $text, 'meta' => $meta, 'completed_at' => now()]);
         $conversation->update(['latest_message_at' => now()]);
-        $emit('message_completed', array_merge($base(), ['content' => $text, 'status' => 'completed', 'components' => $components, 'poster' => $meta['poster'] ?? null]));
+        if (!empty($reply['activity'])) {
+            $emit('activity_generated', array_merge($base(), ['activity' => $reply['activity']]));
+        }
+        $emit('message_completed', array_merge($base(), [
+            'content' => $text,
+            'status' => 'completed',
+            'components' => $components,
+            'activity' => $meta['activity'] ?? null,
+            'poster' => $meta['poster'] ?? null,
+        ]));
         $emit('done', array_merge($base(), ['finish_reason' => 'completed']));
+    }
+
+    /**
+     * Keep the standalone activity conversation compatible with the original
+     * merchant workflow. The frontend submits a component_result for each card.
+     * That result is the authoritative state transition for the next response.
+     *
+     * @return array{text: string, thinking: string, components: array<int, array<string, mixed>>, activity?: array<string, mixed>}
+     */
+    private function activityReply(AiConversation $conversation): array
+    {
+        $lastUserMessage = $conversation->messages()
+            ->where('role', 'user')
+            ->orderByDesc('id')
+            ->first();
+        $result = is_array($lastUserMessage?->component_result) ? $lastUserMessage->component_result : [];
+        $stepKey = (string) ($result['step_key'] ?? '');
+        $status = (string) ($result['status'] ?? '');
+        $meta = $conversation->meta ?? [];
+        $draft = is_array($meta['activity_draft'] ?? null) ? $meta['activity_draft'] : [];
+
+        if ($stepKey === 'activity_goal_duration') {
+            $draft['goal'] = $status === 'skipped'
+                ? ['value' => '拉新获客', 'label' => '拉新获客']
+                : $this->namedValue($result['goal'] ?? null, '拉新获客');
+            $draft['duration'] = $status === 'skipped'
+                ? ['value' => '最近7天', 'label' => '最近 7 天']
+                : $this->durationValue($result['duration'] ?? null);
+            $draft['next_step'] = 'activity_select_items';
+            $this->saveActivityDraft($conversation, $draft);
+
+            $prefix = $status === 'skipped'
+                ? '已收到你跳过“活动目标与时间”这一步。我会先按“拉新获客、最近 7 天”继续。'
+                : '已收到你的活动偏好：核心目标定为“' . $draft['goal']['label'] . '”，活动周期选择“' . $draft['duration']['label'] . '”。';
+
+            return $this->itemSelectorReply($prefix);
+        }
+
+        if ($stepKey === 'activity_select_items') {
+            $items = is_array($result['items'] ?? null) ? $result['items'] : [];
+            $draft['items'] = $items;
+            $draft['item_requirement'] = trim((string) ($result['item_requirement'] ?? ''));
+            $draft['next_step'] = 'activity_style_preference';
+            $this->saveActivityDraft($conversation, $draft);
+
+            $titles = collect($items)
+                ->map(static fn ($item) => is_array($item) ? trim((string) ($item['title'] ?? '')) : '')
+                ->filter()
+                ->values()
+                ->all();
+            $prefix = $status === 'skipped'
+                ? '已收到你跳过“主推项目”这一步，我会在生成方案时保留默认体验项目。'
+                : ($titles === []
+                    ? '已收到你的主推项目要求。'
+                    : '已收到你选择的主推项目：' . implode('、', $titles) . '。');
+
+            return $this->styleSelectorReply($prefix);
+        }
+
+        if ($stepKey === 'activity_style_preference') {
+            $draft['style'] = $status === 'skipped'
+                ? ['value' => 'general', 'label' => '通用风格']
+                : $this->namedValue($result['style'] ?? null, '通用风格');
+            $draft['style_requirement'] = trim((string) ($result['style_requirement'] ?? ''));
+            $draft['next_step'] = 'activity_deep_confirm';
+            $this->saveActivityDraft($conversation, $draft);
+
+            $prefix = $status === 'skipped'
+                ? '已收到你跳过“风格偏好”这一步，我会按通用风格继续。'
+                : '已收到你的风格偏好：“' . $draft['style']['label'] . '”。';
+
+            return $this->deepConfirmReply($draft, $prefix);
+        }
+
+        if ($stepKey === 'activity_deep_confirm') {
+            $draft['next_step'] = 'completed';
+            $this->saveActivityDraft($conversation, $draft);
+            $activity = $this->generatedActivity($conversation, $draft);
+
+            return [
+                'text' => '活动方案已生成，可在右侧预览中查看并继续调整。',
+                'thinking' => '正在生成活动页面与主视觉...',
+                'components' => [[
+                    'card_id' => $this->businessId('activity_cover'),
+                    'type' => 'activity_cover_preview',
+                    'status' => 'completed',
+                    'title' => '活动主图已生成',
+                    'image_url' => AiCatalog::ACTIVITY_IMAGE,
+                    'aspect_ratio' => '3:4',
+                ]],
+                'activity' => $activity,
+            ];
+        }
+
+        return match ((string) ($draft['next_step'] ?? '')) {
+            'activity_select_items' => $this->itemSelectorReply('活动目标和时间已确认，继续选择主推项目。'),
+            'activity_style_preference' => $this->styleSelectorReply('主推项目已确认，继续选择活动风格。'),
+            'activity_deep_confirm' => $this->deepConfirmReply($draft, '活动信息已确认。'),
+            'completed' => [
+                'text' => '活动方案已生成，可继续告诉我想调整的内容。',
+                'thinking' => '正在读取已生成的活动方案...',
+                'components' => [],
+            ],
+            default => $this->goalDurationReply(),
+        };
+    }
+
+    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>} */
+    private function goalDurationReply(): array
+    {
+        return [
+            'text' => '我已理解你的活动诉求。先确定活动目标和时间，我再为你匹配玩法和活动方案。',
+            'thinking' => '正在拆解目标、商品与活动周期...',
+            'components' => [[
+                'card_id' => $this->businessId('goal'),
+                'type' => 'activity_goal_duration_selector',
+                'version' => 1,
+                'title' => '先确定本次活动目标和时间，我再给你匹配玩法',
+                'sub_title' => '这一步只需要 10 秒，选完后我会继续生成活动方案',
+                'can_skip' => true,
+                'skip_button_text' => '跳过',
+                'submit_mode' => 'manual',
+                'submit_button_text' => '下一步',
+                'step_key' => 'activity_goal_duration',
+                'scene' => 'merchant_assistant',
+                'sections' => [
+                    ['section_key' => 'goal', 'title' => '本次店庆的核心目标是什么？', 'required' => true, 'selection_mode' => 'single', 'options' => [
+                        ['value' => '拉新获客', 'label' => '拉新获客'],
+                        ['value' => '老客复购', 'label' => '老客复购'],
+                        ['value' => '提升客单价', 'label' => '提升客单价'],
+                        ['value' => '会员储值', 'label' => '会员储值'],
+                    ]],
+                    ['section_key' => 'duration', 'title' => '活动计划的起止时间是？或者大概持续几天？', 'selection_mode' => 'single', 'options' => [
+                        ['value' => '最近10天', 'label' => '最近 10 天'],
+                        ['value' => 'custom_range', 'label' => '自定义时间', 'action' => 'open_date_picker'],
+                    ]],
+                ],
+            ]],
+        ];
+    }
+
+    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>} */
+    private function itemSelectorReply(string $prefix): array
+    {
+        return [
+            'text' => $prefix . ' 下一步请选择本次活动的主推项目。',
+            'thinking' => '正在匹配商品承接与优惠方式...',
+            'components' => [[
+                'card_id' => $this->businessId('item'),
+                'type' => 'activity_item_selector',
+                'version' => 1,
+                'step_key' => 'activity_select_items',
+                'scene' => 'merchant_assistant',
+                'title' => '请选择本次活动的主推项目',
+                'sub_title' => '先选项目，我再继续帮你设计优惠方式和活动页面',
+                'selector_type' => 'mixed_items',
+                'selection_mode' => 'multiple',
+                'min_select_count' => 1,
+                'max_select_count' => 3,
+                'can_skip' => true,
+                'skip_button_text' => '跳过',
+                'submit_mode' => 'manual',
+                'submit_button_text' => '下一步',
+            ]],
+        ];
+    }
+
+    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>} */
+    private function styleSelectorReply(string $prefix): array
+    {
+        return [
+            'text' => $prefix . ' 接下来请选一下活动氛围的风格偏好。',
+            'thinking' => '正在规划活动氛围与页面视觉方向...',
+            'components' => [[
+                'card_id' => $this->businessId('style'),
+                'type' => 'activity_style_selector',
+                'version' => 1,
+                'step_key' => 'activity_style_preference',
+                'scene' => 'merchant_assistant',
+                'title' => '活动氛围有什么风格偏好？',
+                'sub_title' => '选一个你更喜欢的视觉方向，我会按这个风格继续生成活动文案和页面建议',
+                'selection_mode' => 'single',
+                'can_skip' => true,
+                'skip_button_text' => '跳过',
+                'submit_mode' => 'manual',
+                'submit_button_text' => '下一步',
+                'options' => [
+                    ['value' => 'general', 'label' => '通用风格', 'describe' => '由快灵自动匹配'],
+                    ['value' => 'trend_3d', 'label' => '3D潮玩', 'describe' => '高对比、强视觉记忆点'],
+                    ['value' => 'light_luxury', 'label' => '轻奢质感', 'describe' => '克制、精致、适合高客单'],
+                ],
+            ]],
+        ];
+    }
+
+    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>} */
+    private function deepConfirmReply(array $draft, string $prefix): array
+    {
+        $goal = (string) data_get($draft, 'goal.label', '拉新获客');
+        $duration = (string) data_get($draft, 'duration.label', '最近 10 天');
+        $style = (string) data_get($draft, 'style.label', '通用风格');
+        $items = collect($draft['items'] ?? [])->map(static fn ($item) => is_array($item) ? (string) ($item['title'] ?? '') : '')->filter()->values()->all();
+        $itemLabel = $items === [] ? (trim((string) ($draft['item_requirement'] ?? '')) ?: '默认体验项目') : implode('、', $items);
+        $summary = implode("\n", [
+            '活动目标：' . $goal,
+            '活动周期：' . $duration,
+            '主推项目：' . $itemLabel,
+            '视觉风格：' . $style,
+        ]);
+
+        return [
+            'text' => $prefix . ' 我已整理好活动方案，请确认后开始生成。',
+            'thinking' => '正在整合活动目标、时间、商品和视觉风格...',
+            'components' => [[
+                'card_id' => $this->businessId('activity_confirm'),
+                'type' => 'activity_deep_confirm',
+                'version' => 1,
+                'step_key' => 'activity_deep_confirm',
+                'scene' => 'merchant_assistant',
+                'title' => '确认活动方案',
+                'sub_title' => '确认后将开始创建活动并生成主图。',
+                'submit_button_text' => '确认并开始生成',
+                'thinking' => '已完成方案拆解，将按以下信息生成活动页面。',
+                'summary' => $summary,
+                'plan' => [
+                    'activity_goal' => $goal,
+                    'activity_duration' => $duration,
+                    'selected_items' => $itemLabel,
+                    'style' => $style,
+                ],
+            ]],
+        ];
+    }
+
+    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>} */
+    private function posterReply(): array
+    {
+        return [
+            'text' => '我已拆解海报主题、目标人群和画面风格，正在生成主视觉方案。',
+            'thinking' => '正在构思画面结构和视觉风格...',
+            'components' => [[
+                'card_id' => $this->businessId('poster'),
+                'type' => 'poster_image_preview',
+                'status' => 'completed',
+                'title' => 'AI 海报预览',
+                'image_url' => AiCatalog::POSTER_IMAGE,
+                'poster' => ['url' => AiCatalog::POSTER_IMAGE],
+            ]],
+        ];
+    }
+
+    private function saveActivityDraft(AiConversation $conversation, array $draft): void
+    {
+        $conversation->update(['meta' => array_merge($conversation->meta ?? [], ['activity_draft' => $draft])]);
+    }
+
+    /** @return array{value: string, label: string} */
+    private function namedValue(mixed $value, string $fallback): array
+    {
+        if (is_array($value)) {
+            $selected = trim((string) ($value['label'] ?? $value['value'] ?? ''));
+            if ($selected !== '') {
+                return ['value' => (string) ($value['value'] ?? $selected), 'label' => (string) ($value['label'] ?? $selected)];
+            }
+        }
+        return ['value' => $fallback, 'label' => $fallback];
+    }
+
+    /** @return array{value: string, label: string, start_time?: string|null, end_time?: string|null} */
+    private function durationValue(mixed $value): array
+    {
+        $duration = $this->namedValue($value, '最近 10 天');
+        if (is_array($value)) {
+            $duration['start_time'] = isset($value['start_time']) ? (string) $value['start_time'] : null;
+            $duration['end_time'] = isset($value['end_time']) ? (string) $value['end_time'] : null;
+        }
+        return $duration;
+    }
+
+    /** @return array<string, mixed> */
+    private function generatedActivity(AiConversation $conversation, array $draft): array
+    {
+        $activityId = 100000 + (int) (sprintf('%u', crc32($conversation->conversation_id)) % 899999);
+        return [
+            'activity_id' => $activityId,
+            'activity_model_id' => 1,
+            'title' => trim((string) $conversation->title) ?: 'AI 生成活动方案',
+            'status' => 'draft',
+            'cover_img' => AiCatalog::ACTIVITY_IMAGE,
+            'preview_url' => null,
+            'draft' => $draft,
+        ];
     }
 
     public function stop(string $assistantMessageId): AiMessage
