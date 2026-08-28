@@ -169,7 +169,7 @@
             >
               <img
                 v-if="getActivityImagePreviewUrl(card)"
-                :src="getRenderedImageUrl(item, getActivityImagePreviewUrl(card))"
+                :src="getActivityImagePreviewUrl(card)"
                 :alt="getActivityImagePreviewTitle(card)"
                 referrerpolicy="no-referrer"
                 @click="emit('previewImage', getActivityImagePreviewUrl(card))"
@@ -325,7 +325,7 @@
             >
               <img
                 v-if="getActivityImagePreviewUrl(card)"
-                :src="getRenderedImageUrl(item, getActivityImagePreviewUrl(card))"
+                :src="getActivityImagePreviewUrl(card)"
                 :alt="getActivityImagePreviewTitle(card)"
                 referrerpolicy="no-referrer"
                 @click="emit('previewImage', getActivityImagePreviewUrl(card))"
@@ -417,7 +417,7 @@
             >
               <img
                 v-if="getPosterPreviewImageUrl(getPosterImagePreviewCard(item))"
-                :src="getRenderedImageUrl(item, getPosterPreviewImageUrl(getPosterImagePreviewCard(item)))"
+                :src="getPosterPreviewImageUrl(getPosterImagePreviewCard(item))"
                 alt="AI 生成海报"
                 referrerpolicy="no-referrer"
                 @click="emit('previewImage', getPosterPreviewImageUrl(getPosterImagePreviewCard(item)))"
@@ -568,7 +568,6 @@ import ThinkingProcessCard from './ThinkingProcessCard.vue'
 import {
   posterGenerationLoadingTexts,
 } from '../../shared/generationLoadingCopy'
-import { buildAiImageUrl } from '../../standalone/api'
 
 type ChatImage = {
   url: string
@@ -1731,10 +1730,6 @@ function getPosterPreviewImageUrl(card: ActivityAssistantCard | null) {
   return String(card?.image_url || card?.poster?.url || '').trim()
 }
 
-function getRenderedImageUrl(message: ChatMessageItem, sourceUrl: string) {
-  const messageId = String(message.messageId || message.id || '').trim()
-  return messageId && sourceUrl ? buildAiImageUrl(messageId, sourceUrl) : sourceUrl
-}
 
 function isPosterPreviewCardGenerating(card: ActivityAssistantCard | null) {
   return !getPosterPreviewImageUrl(card) && !['completed', 'failed', 'stopped'].includes(card?.status || '')

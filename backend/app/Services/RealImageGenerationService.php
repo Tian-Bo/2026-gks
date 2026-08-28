@@ -99,9 +99,10 @@ class RealImageGenerationService
     private function providers(): array
     {
         $providers = [];
-        // GPT Image 2 is the selected model. Keep the OpenAI-compatible
-        // providers ahead of Seedream, which is retained only as a fallback.
-        foreach (['xhhai', 'sub2api', 'seedream'] as $provider) {
+        // GPT Image 2 is the selected model. A non-responsive provider must
+        // not leave the whole chat turn pending forever, so Seedream is the
+        // verified real-image fallback before the secondary proxy.
+        foreach (['xhhai', 'seedream', 'sub2api'] as $provider) {
             if (trim((string) config('services.' . $provider . '.api_key')) !== '') {
                 $providers[] = $provider;
             }
@@ -115,7 +116,9 @@ class RealImageGenerationService
 
     private function request(string $provider, string $model, string $prompt, string $ratio): Response
     {
-        $timeout = min(120, max(60, (int) env('AI_CHAT_POSTER_GENERATION_TIMEOUT', 90)));
+        $timeout = $provider === 'xhhai'
+            ? min(25, max(10, (int) env('AI_CHAT_GPT_IMAGE_TIMEOUT', 18)))
+            : min(120, max(60, (int) env('AI_CHAT_POSTER_GENERATION_TIMEOUT', 90)));
         $client = Http::acceptJson()
             ->withToken((string) config('services.' . $provider . '.api_key'))
             ->timeout($timeout)
