@@ -1,5 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ActivityPreviewController;
 
-Route::get('/', static fn () => response()->json(['service' => 'kl-ai-laravel', 'status' => 'ok']));
+Route::get('/', [ActivityPreviewController::class, 'show']);

@@ -4,6 +4,7 @@
 /.runtime/
 /.phpunit.result.cache
 /storage/*.key
+/storage/app/ai-uploads/
 /storage/logs/*
 !/storage/logs/.gitignore
 /storage/framework/cache/data/*

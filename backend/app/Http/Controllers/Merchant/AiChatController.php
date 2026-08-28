@@ -35,7 +35,8 @@ class AiChatController extends Controller
     public function conversationsIndex(Request $request): JsonResponse
     {
         $data = $request->validate(['shop_id' => ['nullable', 'integer'], 'per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
-        $list = $this->chat->conversations($data['shop_id'] ?? null, $data['per_page'] ?? 15);
+        $shopId = $this->selectedShopId($request, $data['shop_id'] ?? null);
+        $list = $this->chat->conversations($shopId, $data['per_page'] ?? 15);
         return response()->json([
             'items' => collect($list->items())->map(fn ($item) => $this->chat->conversationPayload($item))->values(),
             'per_page' => $list->perPage(), 'current_page' => $list->currentPage(), 'total' => $list->total(),
@@ -69,6 +70,7 @@ class AiChatController extends Controller
             'component_result' => ['nullable', 'array'],
             'options' => ['nullable', 'array'],
         ]);
+        $payload['shop_id'] = $this->selectedShopId($request, $payload['shop_id'] ?? null);
         [$conversation, $userMessage, $assistantMessage] = $this->chat->createTurn($payload);
         return response()->json([
             'conversation' => $this->chat->conversationPayload($conversation),
@@ -115,5 +117,15 @@ class AiChatController extends Controller
     public function messageStop(string $assistantMessageId): JsonResponse
     {
         return response()->json(['message' => $this->chat->messagePayload($this->chat->stop($assistantMessageId))]);
+    }
+
+    private function selectedShopId(Request $request, ?int $requestedShopId): int
+    {
+        $tokenShopId = (int) $request->attributes->get('shop_id');
+        abort_unless($tokenShopId > 0, 401, '请先选择店铺');
+        if ($requestedShopId !== null && $requestedShopId !== $tokenShopId) {
+            abort(403, '请求店铺与当前令牌不一致');
+        }
+        return $tokenShopId;
     }
 }

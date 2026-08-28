@@ -17,7 +17,8 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
-            Route::prefix('merchant/v1')->middleware('api')->group(base_path('routes/merchant.php'));
+            Route::prefix('merchant/v1')->middleware(['api', 'merchant.context'])->group(base_path('routes/merchant.php'));
+            Route::prefix('common/v1')->middleware(['api', 'merchant.context'])->group(base_path('routes/common.php'));
             Route::middleware('web')->group(base_path('routes/web.php'));
         });
     }

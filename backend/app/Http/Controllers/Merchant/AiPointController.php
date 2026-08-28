@@ -12,7 +12,7 @@ class AiPointController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $shopId = (int) ($request->query('shop_id') ?: env('AI_SHOP_ID', 1));
+        $shopId = $this->selectedShopId($request, $request->query('shop_id'));
         $account = AiPointAccount::query()->where('shop_id', $shopId)->first();
         return response()->json([
             'balance' => (int) ($account?->balance ?? 0),
@@ -27,7 +27,7 @@ class AiPointController extends Controller
     public function ledgers(Request $request): JsonResponse
     {
         $data = $request->validate(['shop_id' => ['nullable', 'integer'], 'per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
-        $shopId = (int) ($data['shop_id'] ?? env('AI_SHOP_ID', 1));
+        $shopId = $this->selectedShopId($request, $data['shop_id'] ?? null);
         $list = AiPointLedger::query()->where('shop_id', $shopId)->orderByDesc('id')->paginate($data['per_page'] ?? 20);
         return response()->json([
             'items' => collect($list->items())->map(static fn (AiPointLedger $item) => [
@@ -38,5 +38,15 @@ class AiPointController extends Controller
             ])->values(),
             'per_page' => $list->perPage(), 'current_page' => $list->currentPage(), 'total' => $list->total(),
         ]);
+    }
+
+    private function selectedShopId(Request $request, mixed $requestedShopId): int
+    {
+        $tokenShopId = (int) $request->attributes->get('shop_id');
+        abort_unless($tokenShopId > 0, 401, '请先选择店铺');
+        if ($requestedShopId !== null && $requestedShopId !== '' && (int) $requestedShopId !== $tokenShopId) {
+            abort(403, '请求店铺与当前令牌不一致');
+        }
+        return $tokenShopId;
     }
 }

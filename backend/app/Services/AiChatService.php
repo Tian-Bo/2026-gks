@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AiConversation;
+use App\Models\AiActivity;
 use App\Models\AiMessage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
@@ -13,12 +14,12 @@ class AiChatService
 {
     public function merchantId(): int
     {
-        return (int) env('AI_MERCHANT_ID', 1);
+        return (int) (app('request')->attributes->get('merchant_id') ?: env('AI_MERCHANT_ID', 1));
     }
 
     public function shopId(?int $shopId): int
     {
-        return $shopId ?: (int) env('AI_SHOP_ID', 1);
+        return $shopId ?: (int) (app('request')->attributes->get('shop_id') ?: env('AI_SHOP_ID', 1));
     }
 
     public function conversations(?int $shopId, int $perPage)
@@ -489,13 +490,32 @@ class AiChatService
     /** @return array<string, mixed> */
     private function generatedActivity(AiConversation $conversation, array $draft, ?string $coverImage = null): array
     {
-        $activityId = 100000 + (int) (sprintf('%u', crc32($conversation->conversation_id)) % 899999);
-        return [
-            'activity_id' => $activityId,
+        $cover = $coverImage ?: AiCatalog::ACTIVITY_IMAGE;
+        $activity = AiActivity::query()->firstOrNew([
+            'source_conversation_id' => $conversation->conversation_id,
+        ]);
+        $activity->fill([
+            'merchant_id' => $conversation->merchant_id,
+            'shop_id' => $conversation->shop_id ?: $this->shopId(null),
             'activity_model_id' => 1,
             'title' => trim((string) $conversation->title) ?: 'AI 生成活动方案',
             'status' => 'draft',
-            'cover_img' => $coverImage ?: AiCatalog::ACTIVITY_IMAGE,
+            'cover_img' => $cover,
+            'components' => [[
+                'type' => 'main_graph',
+                'cover_img' => $cover,
+                'image_url' => $cover,
+            ]],
+            'meta' => ['draft' => $draft, 'cover_img' => $cover],
+        ]);
+        $activity->save();
+
+        return [
+            'activity_id' => $activity->id,
+            'activity_model_id' => 1,
+            'title' => $activity->title,
+            'status' => 'draft',
+            'cover_img' => $cover,
             'preview_url' => null,
             'draft' => $draft,
         ];
