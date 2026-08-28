@@ -1,49 +1,73 @@
-const previewImage = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1778663651_nlAVosokfd.png'
-const posterImage = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1778685865_9Ez3vzr1I9.png'
+const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'http://127.0.0.1:4311').replace(/\/+$/, '')
 
-const inspirations = [
-  { id: 1, type: 'activity', title: '夏日新客爆款体验活动', prompt: '为医美门店生成夏日新客体验活动，强调低门槛、到店转化和朋友圈传播。', cover_img: previewImage, image_url: previewImage, author_name: '星颜美学', like_count: 286, used_count: 92, created_at: '2026-08-28 10:20:00', activity_id: 900001, activity_model_id: 1 },
-  { id: 2, type: 'poster', title: '夏日补水修护海报', prompt: '生成一张小红书风格的夏季补水修护海报，标题醒目、质感高级。', cover_img: posterImage, image_url: posterImage, author_name: '轻医美研究所', like_count: 168, used_count: 51, created_at: '2026-08-27 16:10:00' },
-  { id: 3, type: 'activity', title: '七夕双人焕颜计划', prompt: '围绕情侣到店与双人套餐，设计七夕限时活动。', cover_img: previewImage, image_url: previewImage, author_name: '初见皮肤管理', like_count: 124, used_count: 38, created_at: '2026-08-26 11:30:00', activity_id: 900002, activity_model_id: 1 },
-  { id: 4, type: 'poster', title: '会员焕新季主视觉', prompt: '为会员焕新季生成高级感主视觉海报。', cover_img: posterImage, image_url: posterImage, author_name: '悦己美研社', like_count: 95, used_count: 24, created_at: '2026-08-25 09:45:00' },
-]
+type QueryValue = string | number | boolean | null | undefined
+type Query = Record<string, QueryValue>
 
-const conversations = [
-  { conversation_id: 'mock-activity-001', title: '夏日新客爆款体验活动', scene: 'merchant_assistant', preview_image: previewImage, status: 'active', meta: { mode: 'activity' }, updated_at: '2026-08-28 10:20:00', created_at: '2026-08-28 10:20:00' },
-  { conversation_id: 'mock-poster-001', title: '夏日补水修护海报', scene: 'poster', preview_image: posterImage, status: 'active', meta: { mode: 'poster' }, updated_at: '2026-08-27 16:10:00', created_at: '2026-08-27 16:10:00' },
-  { conversation_id: 'mock-activity-002', title: '七夕双人焕颜计划', scene: 'merchant_assistant', preview_image: previewImage, status: 'active', meta: { mode: 'activity' }, updated_at: '2026-08-26 11:30:00', created_at: '2026-08-26 11:30:00' },
-  { conversation_id: 'mock-poster-002', title: '会员焕新季主视觉', scene: 'poster', preview_image: posterImage, status: 'active', meta: { mode: 'poster' }, updated_at: '2026-08-25 09:45:00', created_at: '2026-08-25 09:45:00' },
-]
+function buildUrl(path: string, query: Query = {}) {
+  const url = new URL(path, `${apiBaseUrl}/`)
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '')
+      url.searchParams.set(key, String(value))
+  })
+  return url.toString()
+}
 
-const api: any = {
+function toApiError(status: number, body: unknown) {
+  const message = typeof body === 'object' && body !== null && 'message' in body
+    ? String((body as { message?: unknown }).message || '')
+    : ''
+  return new Error(message || `AI 服务请求失败（${status}）`)
+}
+
+async function request<T>(path: string, init: RequestInit = {}, query: Query = {}): Promise<T> {
+  const response = await fetch(buildUrl(path, query), {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init.headers,
+    },
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok)
+    throw toApiError(response.status, body)
+  return body as T
+}
+
+function unsupported(module: string): never {
+  throw new Error(`${module} 不属于独立 AI 服务范围`)
+}
+
+const api = {
   ai: {
-    getAiPageConfig: async () => null,
-    getAiPoints: async () => ({ balance: 1280 }),
-    getAiPromptTips: async () => ({ items: [] }),
-    getAiConversationList: async () => ({ items: conversations, total: conversations.length }),
-    getAiConversationMessages: async () => ({ items: [], conversation: conversations[0] }),
-    getAiInspirations: async (params: { type?: string } = {}) => ({
-      items: params.type && params.type !== 'all' ? inspirations.filter(item => item.type === params.type) : inspirations,
-      quick_prompts: params.type === 'poster'
-        ? [{ id: 1, type: 'poster', content: '做一张夏日补水修护海报' }, { id: 2, type: 'poster', content: '生成会员焕新季主视觉' }]
-        : [{ id: 1, type: 'activity', content: '做一个新客拉新活动' }, { id: 2, type: 'activity', content: '设计老客复购活动' }],
+    getAiPageConfig: () => request('/merchant/v1/shop/ai/config'),
+    getAiPoints: (params: Query = {}) => request('/merchant/v1/shop/ai/points', {}, params),
+    getAiPromptTips: (params: Query = {}) => request('/merchant/v1/shop/ai/prompt-tips', {}, params),
+    getAiConversationList: (params: Query = {}) => request('/merchant/v1/shop/ai/conversations', {}, params),
+    getAiConversationMessages: (conversationId: string, params: Query = {}) => request(`/merchant/v1/shop/ai/conversations/${encodeURIComponent(conversationId)}/messages`, {}, params),
+    getAiInspirations: (params: Query = {}) => request('/merchant/v1/shop/ai/inspirations', {}, params),
+    getAiInspirationDetail: (id: number) => request(`/merchant/v1/shop/ai/inspirations/${id}`),
+    sendAiMessage: (data: Record<string, unknown>) => request('/merchant/v1/shop/ai/messages', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
-    getAiInspirationDetail: async (id: number) => inspirations.find(item => item.id === id) || inspirations[0],
-    toggleContentReaction: async () => ({ is_active: 1, count: 1 }),
-    sendAiMessage: async (data: { content?: string }) => ({
-      conversation: { conversation_id: 'mock-activity-001', title: data.content || 'AI 活动方案' },
-      assistant_message: { message_id: 'mock-assistant-001' },
-      stream_url: '',
+    stopAiMessage: (assistantMessageId: string) => request(`/merchant/v1/shop/ai/messages/${encodeURIComponent(assistantMessageId)}/stop`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     }),
-    stopAiMessage: async () => ({ message: {} }),
-    buildAiMessageStreamUrl: () => '',
-    buildAiStreamUrl: () => '',
+    buildAiMessageStreamUrl: (assistantMessageId: string) => buildUrl(`/merchant/v1/shop/ai/messages/${encodeURIComponent(assistantMessageId)}/stream`),
+    buildAiStreamUrl: (streamUrl: string) => /^https?:\/\//i.test(streamUrl)
+      ? streamUrl
+      : buildUrl(streamUrl),
+    toggleContentReaction: () => unsupported('内容点赞'),
   },
-  goods: { getUnifiedItemList: async () => ({ items: [], total: 0 }) },
+  goods: {
+    getUnifiedItemList: async () => ({ items: [], total: 0 }),
+  },
   activity: {
-    getActivityDetail: async () => ({}),
-    updateActivity: async () => ({}),
-    releaseActivity: async () => ({}),
+    getActivityDetail: () => unsupported('活动详情'),
+    updateActivity: () => unsupported('活动编辑'),
+    releaseActivity: () => unsupported('活动发布'),
   },
 }
 

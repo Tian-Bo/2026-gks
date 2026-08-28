@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-默认地址打开 AI 首页；从首页提交后进入对话页，顶部历史入口进入历史生成页。`?mock=0` 预留给后续接入真实服务；在未实现适配器前，不应作为演示入口。
+默认地址打开 AI 首页；从首页提交后进入对话页，顶部历史入口进入历史生成页。开发环境默认请求 `http://127.0.0.1:4311` 的 Laravel AI 服务；可通过 `VITE_AI_API_BASE_URL` 覆盖。`?mock=1` 仅用于静态流程演示。
 
 | 路径 | 页面 | 进入方式 |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ npm run dev
 
 | 原依赖 | 独立项目处理 | 说明 |
 | --- | --- | --- |
-| AI 会话、积分、提示词接口 | `standalone/api.ts` | 当前由原页面的 mock 会话展示；后续在此接入新服务 |
+| AI 会话、积分、提示词接口 | `standalone/api.ts` | 已接入独立 Laravel AI 服务 |
 | 上传接口 | `standalone/request.ts` | 预留图片上传适配 |
 | 活动预览地址 | `standalone/activityPreviewUrl.ts` | 预留新项目预览页地址 |
 | 商户存储与提示消息 | `standalone/storage.ts`、`standalone/klbMessage.ts` | 独立运行所需的最小替代 |
