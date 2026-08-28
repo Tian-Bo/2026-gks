@@ -1,7 +1,11 @@
 <?php
 
-// The PHP built-in server is launched as a background service for local use.
-// Set its working directory explicitly before Laravel's development router runs.
-chdir(__DIR__);
+// Laravel 8 does not ship the development router resource used by newer
+// framework versions. Let PHP serve static assets and route everything else
+// through Laravel's public entry point.
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
+if ($uri !== '/' && file_exists(__DIR__ . $uri)) {
+    return false;
+}
 
-require __DIR__ . '/../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php';
+require __DIR__ . '/index.php';

@@ -1,6 +1,6 @@
 # AI 活动对话前端
 
-这是从商家后台直接迁移出的 AI 工作流：首页、历史生成、对话页、预览组件、样式、图标字体和原有 mock 会话数据均复用原始实现。它不是按截图重新搭建的页面。
+快灵提供从活动需求输入、AI 对话生成到活动预览的完整工作流，包含首页、历史生成、对话页和预览组件。
 
 ## 运行
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-默认地址打开 AI 首页；从首页提交后进入对话页，顶部历史入口进入历史生成页。开发环境默认请求 `http://127.0.0.1:4311` 的 Laravel AI 服务；可通过 `VITE_AI_API_BASE_URL` 覆盖。`?mock=1` 仅用于静态流程演示。
+默认地址打开 AI 首页；从首页提交后进入对话页，顶部历史入口进入历史生成页。开发环境通过 `VITE_AI_API_BASE_URL` 配置 AI 服务地址。`?mock=1` 仅用于静态流程演示。
 
 | 路径 | 页面 | 进入方式 |
 | --- | --- | --- |
@@ -17,20 +17,20 @@ npm run dev
 | `/chat` | AI 对话生成 | 首页提交或从历史记录继续编辑 |
 | `/history` | 历史生成 | 首页、对话页右上角的历史入口 |
 
-## 独立化方案
+## 项目结构
 
-页面层保持商家后台的原逻辑，商家系统特有依赖集中在 `src/standalone/`：
+页面所需的接口、存储与预览能力集中在 `src/standalone/`：
 
-| 原依赖 | 独立项目处理 | 说明 |
+| 模块 | 位置 | 说明 |
 | --- | --- | --- |
-| AI 会话、积分、提示词接口 | `standalone/api.ts` | 已接入独立 Laravel AI 服务 |
-| 上传接口 | `standalone/request.ts` | 预留图片上传适配 |
-| 活动预览地址 | `standalone/activityPreviewUrl.ts` | 预留新项目预览页地址 |
-| 商户存储与提示消息 | `standalone/storage.ts`、`standalone/klbMessage.ts` | 独立运行所需的最小替代 |
+| AI 会话、积分、提示词接口 | `standalone/api.ts` | 统一封装 AI 服务请求 |
+| 上传接口 | `standalone/request.ts` | 图片上传请求适配 |
+| 活动预览地址 | `standalone/activityPreviewUrl.ts` | 活动预览页地址解析 |
+| 商户存储与提示消息 | `standalone/storage.ts`、`standalone/klbMessage.ts` | 本地状态与提示消息 |
 
 ## 接口与字段映射
 
-| 原页面接口 | 关键输入字段 | 页面使用字段 | 独立服务建议 |
+| 页面接口 | 关键输入字段 | 页面使用字段 | 服务处理 |
 | --- | --- | --- | --- |
 | `getAiPageConfig` | 无 | `styles`、`activityModels`、`sizes`、`models`、`defaults` | 返回相同配置结构 |
 | `getAiInspirations` | `type`、`page`、`per_page` | `items[]`、`quick_prompts[]` | 首页灵感卡片和快捷输入 |

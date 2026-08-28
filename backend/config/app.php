@@ -37,5 +37,7 @@ return [
         App\Providers\AppServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
     ],
-    'aliases' => Illuminate\Support\Facades\Facade::defaultAliases()->merge([])->toArray(),
+    // Laravel 8 has no Facade::defaultAliases(). Application classes import
+    // their facades directly, so global aliases are not required here.
+    'aliases' => [],
 ];

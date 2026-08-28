@@ -10,5 +10,7 @@ return [
     'allowed_headers' => ['*'],
     'exposed_headers' => ['*'],
     'max_age' => 0,
-    'supports_credentials' => false,
+    // The standalone frontend sends the selected shop token with credentialed requests.
+    // Origins remain constrained to the configured list and local development hosts.
+    'supports_credentials' => true,
 ];

@@ -1,6 +1,6 @@
-# 快灵 AI 独立后端
+# 快灵 AI Node 服务
 
-这是从原商家后台 AI 模块整理出的独立服务。保留 AI 首页、历史生成和对话页需要的接口契约，不依赖原系统的登录、员工、门店、活动或商品模块。
+这是提供 AI 首页、历史生成和对话页接口的 Node 服务。
 
 ## 运行
 
@@ -12,23 +12,23 @@ npm start
 
 默认监听 `http://127.0.0.1:4311`。开发时可运行 `npm run dev`。
 
-## 原数据库连接
+## 数据库连接
 
-默认的 `mysql` 模式会连接原商家后台使用的 MySQL 数据库，并直接读写 AI 相关表：`shop_ai_conversations`、`shop_ai_messages`、`shop_ai_point_accounts`、`ai_inspirations`。
+默认的 `mysql` 模式会连接 MySQL 数据库，并直接读写 AI 相关表：`shop_ai_conversations`、`shop_ai_messages`、`shop_ai_point_accounts`、`ai_inspirations`。
 
-本机开发时，服务会读取原后端仓库的 `.env` 作为连接来源，不复制凭据到当前仓库。部署时请基于 `.env.example` 创建 `backend/.env`，或使用 `AI_DB_*` 环境变量注入凭据。
+本机开发时，服务从环境变量读取数据库配置。部署时请基于 `.env.example` 创建 `backend/.env`，或使用 `AI_DB_*` 环境变量注入凭据。
 
 若只需要离线演示，可设置 `AI_STORAGE_DRIVER=file`，服务会使用 `data/ai-store.json`。该文件由服务自动创建。
 
 ## 方案
 
-| 层 | 独立实现 | 从原系统保留的边界 |
+| 层 | 实现 | 说明 |
 | --- | --- | --- |
-| 路由层 | Node HTTP 服务 | 保留原商家端 AI 路径和 JSON/SSE 响应形式 |
+| 路由层 | Node HTTP 服务 | AI 路径和 JSON/SSE 响应形式 |
 | 会话层 | `src/ai-service.mjs` | 会话、用户消息、助理消息、停止生成和历史分页 |
 | 生成层 | 同一服务中的流式生成器 | 保留 `thinking_delta`、`message_delta`、`message_card`、`message_completed`、`done` 事件 |
 | 配置层 | `src/catalog.mjs` | 活动模型、风格、画幅、提示词和灵感卡片结构 |
-| 数据层 | `src/mysql-repository.mjs` | 直接读写原库 AI 表；`src/store.mjs` 仅作为离线回退 |
+| 数据层 | `src/mysql-repository.mjs` | 直接读写 AI 表；`src/store.mjs` 仅作为离线回退 |
 
 ## 接口
 
@@ -60,4 +60,4 @@ npm start
 
 ## 与前端对接
 
-前端默认使用自身演示适配器。接入此服务时，将前端 AI 适配层的请求基址配置为 `http://127.0.0.1:4311`，并保留原有 `/merchant/v1/shop/ai/*` 路径即可。
+接入此服务时，将前端 AI 适配层的请求基址配置为 `http://127.0.0.1:4311`，并使用 `/merchant/v1/shop/ai/*` 路径。

@@ -20,8 +20,7 @@ class MerchantAuthService
             'name' => '我的门店',
             'password' => Hash::make($password),
         ]);
-        // The original AI tables can coexist during migration. Start standalone
-        // identities above their existing numeric ranges to avoid data overlap.
+        // Keep generated identities above existing numeric ranges to avoid overlap.
         $merchant->id = $this->nextMerchantId();
         $merchant->save();
 
@@ -50,13 +49,13 @@ class MerchantAuthService
         return Hash::check($password, $merchant->password);
     }
 
-    public function issueToken(AiMerchant $merchant, ?AiShop $shop = null): array
+    public function issueToken(int $merchantId, ?int $shopId = null): array
     {
         $token = Str::random(64);
-        MerchantAccessToken::query()->where('merchant_id', $merchant->id)->where('expires_at', '<=', now())->delete();
+        MerchantAccessToken::query()->where('merchant_id', $merchantId)->where('expires_at', '<=', now())->delete();
         MerchantAccessToken::create([
-            'merchant_id' => $merchant->id,
-            'shop_id' => $shop?->id,
+            'merchant_id' => $merchantId,
+            'shop_id' => $shopId,
             'token_hash' => hash('sha256', $token),
             'expires_at' => now()->addDays(30),
         ]);
@@ -64,7 +63,7 @@ class MerchantAuthService
         return [
             'access_token' => $token,
             'expires_in' => 30 * 24 * 60 * 60,
-            'shop_id' => $shop?->id,
+            'shop_id' => $shopId,
         ];
     }
 

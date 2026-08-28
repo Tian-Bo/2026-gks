@@ -97,4 +97,9 @@ return [
     'ai_chat_text' => [
         'provider' => env('AI_CHAT_TEXT_PROVIDER', 'auto'),
     ],
+
+    'ai_upstream' => [
+        'base_url' => env('AI_UPSTREAM_API_BASE_URL', 'http://klapis.liebiankuai.com'),
+        'timeout' => (int) env('AI_UPSTREAM_TIMEOUT', 310),
+    ],
 ];

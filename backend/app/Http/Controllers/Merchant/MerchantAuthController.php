@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Merchant;
 use App\Http\Controllers\Controller;
 use App\Models\AiMerchant;
 use App\Models\AiShop;
+use App\Models\LegacyMerchant;
+use App\Models\LegacyShop;
+use App\Models\MerchantAccessToken;
 use App\Services\MerchantAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,12 +44,21 @@ class MerchantAuthController extends Controller
         [$merchant, $shop] = $this->auth->register($data['phone'], $data['password']);
         Cache::forget($this->codeKey($data['phone'], 1));
 
-        return response()->json(array_merge($this->auth->issueToken($merchant, $shop), ['default_shop_id' => $shop->id]));
+        return response()->json(array_merge($this->auth->issueToken((int) $merchant->id, (int) $shop->id), ['default_shop_id' => $shop->id]));
     }
 
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate(['phone' => ['required', 'regex:/^1\\d{10}$/'], 'password' => ['required', 'string']]);
+        $legacyMerchant = LegacyMerchant::query()->where('phone', $data['phone'])->first();
+        if ($legacyMerchant) {
+            if (!hash_equals((string) $legacyMerchant->password, md5($data['password']))) {
+                abort(401, '手机号或密码错误');
+            }
+            $legacyMerchant->update(['last_login_at' => now()]);
+            return $this->legacyLoginResponse($legacyMerchant->fresh());
+        }
+
         $merchant = AiMerchant::query()->where('phone', $data['phone'])->first();
         if (!$merchant || !$this->auth->verifyPassword($merchant, $data['password'])) {
             abort(401, '手机号或密码错误');
@@ -72,7 +84,23 @@ class MerchantAuthController extends Controller
             ->where('id', $merchant->last_shop_id ?: 0)->first()
             ?: AiShop::query()->where('merchant_id', $merchant->id)->orderByDesc('id')->first();
         $merchant->update(['last_login_at' => now(), 'last_shop_id' => $shop?->id]);
-        return response()->json($this->auth->issueToken($merchant->fresh(), $shop));
+        return response()->json($this->auth->issueToken((int) $merchant->id, $shop?->id));
+    }
+
+    private function legacyLoginResponse(LegacyMerchant $merchant): JsonResponse
+    {
+        $lastShopId = (int) MerchantAccessToken::query()
+            ->where('merchant_id', $merchant->id)
+            ->whereNotNull('shop_id')
+            ->latest('id')
+            ->value('shop_id');
+        $shop = LegacyShop::query()
+            ->where('merchant_id', $merchant->id)
+            ->when($lastShopId > 0, fn ($query) => $query->orderByRaw('id = ? desc', [$lastShopId]))
+            ->orderByDesc('id')
+            ->first();
+
+        return response()->json($this->auth->issueToken((int) $merchant->id, $shop?->id));
     }
 
     private function assertCode(string $phone, int $type, string $code): void
