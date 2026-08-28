@@ -143,7 +143,7 @@
             @confirm="emit('confirmProduct')" />
           <div
             v-for="card in getActivityItemImagePreviewCards(item)"
-            :key="card.card_id || card.item_id || card.item_title"
+            :key="String(card.card_id || card.item_id || card.item_title || 'activity-image')"
             v-if="activeMode === 'activity' && item.role === 'assistant'"
             class="ai-component-reveal-block ai-activity-image-preview-card ai-auto-item-cover-module mt-[20px]"
             :style="getRevealStyle(2)"
@@ -579,7 +579,7 @@ type ChatMessageItem = {
   content?: string
   createdAt?: string | null
   isSystem?: boolean
-  cards?: ActivityAssistantCard[]
+  cards?: any[]
   componentResult?: Record<string, any> | any[] | null
   poster?: {
     url?: string | null
@@ -792,11 +792,11 @@ const props = defineProps({
     required: true,
   },
   getMessageDisplayContent: {
-    type: Function as PropType<(message: ChatMessageItem) => string>,
+    type: Function as PropType<(message: any) => string>,
     required: true,
   },
   getMessageImageAttachments: {
-    type: Function as PropType<(message: ChatMessageItem) => ChatImage[]>,
+    type: Function as PropType<(message: any) => ChatImage[]>,
     required: true,
   },
 })
