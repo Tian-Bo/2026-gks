@@ -1,11 +1,28 @@
-const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'http://127.0.0.1:4312').replace(/\/+$/, '')
+const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.kuailiebian.cn').replace(/\/+$/, '')
 
 type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
 
+function getAccessToken() {
+  const configured = String(import.meta.env.VITE_AI_ACCESS_TOKEN || '').trim()
+  if (configured)
+    return configured
+
+  const cookie = document.cookie.match(/(?:^|;\s*)Admin-Token=([^;]*)/)
+  return cookie ? decodeURIComponent(cookie[1]) : ''
+}
+
+function withAccessToken(query: Query = {}) {
+  if (query.access_token)
+    return query
+
+  const token = getAccessToken()
+  return token ? { ...query, access_token: token } : query
+}
+
 function buildUrl(path: string, query: Query = {}) {
   const url = new URL(path, `${apiBaseUrl}/`)
-  Object.entries(query).forEach(([key, value]) => {
+  Object.entries(withAccessToken(query)).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== '')
       url.searchParams.set(key, String(value))
   })
@@ -63,9 +80,7 @@ const api = {
       body: JSON.stringify({}),
     }),
     buildAiMessageStreamUrl: (assistantMessageId: string) => buildUrl(`/merchant/v1/shop/ai/messages/${encodeURIComponent(assistantMessageId)}/stream`),
-    buildAiStreamUrl: (streamUrl: string) => /^https?:\/\//i.test(streamUrl)
-      ? streamUrl
-      : buildUrl(streamUrl),
+    buildAiStreamUrl: (streamUrl: string) => buildUrl(streamUrl),
     toggleContentReaction: () => unsupported('内容点赞'),
   },
   goods: {
