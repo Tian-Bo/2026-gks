@@ -6444,9 +6444,6 @@ function downloadFile(url: string, fileName: string) {
     overflow-y: visible !important;
   }
 
-  .ai-activity-preview-frame {
-    pointer-events: none;
-  }
 }
 
 .ai-chat-message-panel {
