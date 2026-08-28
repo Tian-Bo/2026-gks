@@ -374,7 +374,7 @@
     </div>
 
     <KlContactServiceModal v-model="csModalOpen" />
-    <KlLoginGuideModal v-model="loginGuideOpen" />
+    <KlLoginGuideModal v-model="loginGuideOpen" @authenticated="handleLoginAuthenticated" />
     <a-modal
       v-model:open="activitySuccessModalOpen"
       :width="400"
@@ -755,6 +755,10 @@ function getCurrentShopId() {
 
   const shopId = Number(rawShopId)
   return Number.isFinite(shopId) && shopId > 0 ? shopId : null
+}
+
+function handleLoginAuthenticated() {
+  window.location.reload()
 }
 
 function normalizeActivityCards(cards: unknown): ActivityAssistantCard[] {

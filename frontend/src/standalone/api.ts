@@ -2,6 +2,8 @@ const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.
 
 type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
+type AuthResult = { access_token: string; shop_id?: number; default_shop_id?: number }
+type ShopListResult = { current_shop_id?: number; items?: Array<{ id: number }> }
 
 function getSelectedShopToken() {
   // The merchant app replaces this cookie with the shop-scoped token returned
@@ -16,6 +18,10 @@ function getSelectedShopToken() {
 
 export function hasAiAccessToken() {
   return Boolean(getSelectedShopToken())
+}
+
+export function saveSelectedShopToken(token: string) {
+  document.cookie = `Admin-Token=${encodeURIComponent(token)}; Path=/; SameSite=Lax`
 }
 
 export function getMerchantLoginUrl() {
@@ -56,6 +62,7 @@ function toApiError(status: number, body: unknown) {
 async function request<T>(path: string, init: RequestInit = {}, query: Query = {}): Promise<T> {
   const response = await fetch(buildUrl(path, query), {
     ...init,
+    credentials: 'include',
     headers: {
       Accept: 'application/json',
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
@@ -80,6 +87,29 @@ function normalizeActivityStage(params: Query) {
 }
 
 const api = {
+  auth: {
+    loginByPassword: (data: { phone: string; password: string }) => request<AuthResult>('/merchant/v1/merchants/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    loginByCode: (data: { phone: string; code: string }) => request<AuthResult>('/merchant/v1/merchants/login/by/phone', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    register: (data: { phone: string; password: string; code: string }) => request<AuthResult>('/merchant/v1/merchants', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    sendSmsCode: (data: { phone: string; cms_type: 1 | 2 }) => request('/common/v1/sendCode', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    getShops: (accessToken: string) => request<ShopListResult>('/merchant/v1/shops', {}, { access_token: accessToken }),
+    selectShop: (shopId: number, accessToken: string) => request<AuthResult>(`/merchant/v1/patch/shops/${shopId}/current`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }, { access_token: accessToken }),
+  },
   ai: {
     getAiPageConfig: () => request('/merchant/v1/shop/ai/config'),
     getAiPoints: (params: Query = {}) => request('/merchant/v1/shop/ai/points', {}, params),

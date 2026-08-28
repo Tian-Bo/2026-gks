@@ -425,7 +425,7 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
       @toggle-like="toggleInspirationLike"
     />
     <KlContactServiceModal v-model="csModalOpen" />
-    <KlLoginGuideModal v-model="loginGuideOpen" />
+    <KlLoginGuideModal v-model="loginGuideOpen" @authenticated="handleLoginAuthenticated" />
   </div>
 </template>
 
@@ -1031,6 +1031,10 @@ function getCurrentShopId() {
 
   const shopId = Number(rawShopId)
   return Number.isFinite(shopId) && shopId > 0 ? shopId : null
+}
+
+function handleLoginAuthenticated() {
+  window.location.reload()
 }
 
 async function fetchAiPointsBalance() {
