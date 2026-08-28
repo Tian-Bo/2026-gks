@@ -13,6 +13,7 @@ Route::prefix('shop/ai')->group(function () {
     Route::get('prompt-tips', [AiChatController::class, 'promptTips']);
     Route::get('conversations', [AiChatController::class, 'conversationsIndex']);
     Route::get('conversations/{conversationId}/messages', [AiChatController::class, 'messagesIndex']);
+    Route::get('messages/{assistantMessageId}/image', [AiChatController::class, 'imageShow']);
     Route::post('messages', [AiChatController::class, 'messageStore']);
     Route::get('messages/{assistantMessageId}/stream', [AiChatController::class, 'messageStream']);
     Route::post('messages/{assistantMessageId}/stop', [AiChatController::class, 'messageStop']);

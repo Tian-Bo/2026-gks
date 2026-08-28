@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AiConversation;
 use App\Models\AiMessage;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Throwable;
@@ -563,6 +564,29 @@ class AiChatService
             'created_at' => optional($message->created_at)->toDateTimeString(),
             'updated_at' => optional($message->updated_at)->toDateTimeString(),
         ];
+    }
+
+    /** @return array{body: string, content_type: string} */
+    public function image(string $assistantMessageId, string $url): array
+    {
+        $message = $this->ownedAssistant($assistantMessageId);
+        $meta = $message->meta ?? [];
+        $imageUrls = collect(data_get($meta, 'components', []))
+            ->pluck('image_url')
+            ->filter(static fn ($value) => is_string($value) && $value !== '')
+            ->push(data_get($meta, 'poster.url'))
+            ->push(data_get($meta, 'activity.cover_img'))
+            ->filter(static fn ($value) => is_string($value) && $value !== '')
+            ->all();
+
+        abort_unless(in_array($url, $imageUrls, true), 404);
+
+        $response = Http::timeout(30)->connectTimeout(10)->get($url);
+        abort_unless($response->successful(), 404);
+        $contentType = strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
+        abort_unless(str_starts_with($contentType, 'image/'), 404);
+
+        return ['body' => $response->body(), 'content_type' => $contentType];
     }
 
     private function ownedConversation(string $conversationId): AiConversation

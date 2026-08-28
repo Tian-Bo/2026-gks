@@ -99,9 +99,9 @@ class RealImageGenerationService
     private function providers(): array
     {
         $providers = [];
-        // Seedream is currently the reachable provider in this local runtime.
-        // The other original providers remain available as fallbacks.
-        foreach (['seedream', 'xhhai', 'sub2api'] as $provider) {
+        // GPT Image 2 is the selected model. Keep the OpenAI-compatible
+        // providers ahead of Seedream, which is retained only as a fallback.
+        foreach (['xhhai', 'sub2api', 'seedream'] as $provider) {
             if (trim((string) config('services.' . $provider . '.api_key')) !== '') {
                 $providers[] = $provider;
             }
@@ -148,7 +148,12 @@ class RealImageGenerationService
     private function requestedModel(array $options): ?string
     {
         $model = trim((string) ($options['image_model'] ?? ''));
-        return in_array($model, ['kl-image', 'auto'], true) ? null : ($model ?: null);
+        if ($model === 'auto') {
+            return null;
+        }
+
+        // Existing conversations created before the rename used kl-image.
+        return $model === 'kl-image' || $model === '' ? 'gpt-image-2' : $model;
     }
 
     private function resolveModel(string $provider, ?string $requestedModel): string

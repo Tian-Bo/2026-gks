@@ -79,6 +79,18 @@ class AiChatController extends Controller
         ]);
     }
 
+    public function imageShow(Request $request, string $assistantMessageId)
+    {
+        $data = $request->validate(['url' => ['required', 'url', 'max:4096']]);
+        $image = $this->chat->image($assistantMessageId, $data['url']);
+
+        return response($image['body'], 200, [
+            'Content-Type' => $image['content_type'],
+            'Cache-Control' => 'private, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function messageStream(string $assistantMessageId): StreamedResponse
     {
         return response()->stream(function () use ($assistantMessageId) {

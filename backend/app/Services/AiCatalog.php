@@ -28,7 +28,7 @@ class AiCatalog
                 ['value' => 'group_buy', 'label' => '拼团活动', 'describe' => '适合多人到店转化'],
             ],
             'models' => [
-                ['value' => 'kl-image', 'label' => '快灵图像模型', 'describe' => '默认生成模型', 'is_default' => true],
+                ['value' => 'gpt-image-2', 'label' => 'GPT Image 2', 'describe' => '默认图像生成模型', 'is_default' => true],
             ],
             'poster_scene' => self::POSTER_SCENE,
         ];

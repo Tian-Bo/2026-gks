@@ -12,6 +12,10 @@ function buildUrl(path: string, query: Query = {}) {
   return url.toString()
 }
 
+export function buildAiImageUrl(assistantMessageId: string, sourceUrl: string) {
+  return buildUrl(`/merchant/v1/shop/ai/messages/${encodeURIComponent(assistantMessageId)}/image`, { url: sourceUrl })
+}
+
 function toApiError(status: number, body: unknown) {
   const message = typeof body === 'object' && body !== null && 'message' in body
     ? String((body as { message?: unknown }).message || '')
