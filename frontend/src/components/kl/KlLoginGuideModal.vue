@@ -117,7 +117,11 @@ async function persistShopToken(auth: { access_token: string; shop_id?: number; 
     throw new Error('登录成功但未返回令牌')
 
   const shops = await api.auth.getShops(merchantToken)
-  const selectedShopId = Number(auth.shop_id || auth.default_shop_id || shops.current_shop_id || shops.items?.[0]?.id || 0)
+  // `shop_id` is the merchant's last selected shop returned by the login API.
+  // The list endpoint echoes it as `current_shop_id`; use the default shop only
+  // when the account has no remembered shop yet.
+  const lastLoginShopId = Number(auth.shop_id || shops.current_shop_id || 0)
+  const selectedShopId = lastLoginShopId || Number(auth.default_shop_id || shops.items?.[0]?.id || 0)
   if (!selectedShopId)
     throw new Error('当前账号暂无可用店铺')
 
