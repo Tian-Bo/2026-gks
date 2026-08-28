@@ -104,7 +104,10 @@ const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    getShops: (accessToken: string) => request<ShopListResult>('/merchant/v1/shops', {}, { access_token: accessToken }),
+    getShops: (accessToken: string) => request<ShopListResult>('/merchant/v1/shops', {}, {
+      access_token: accessToken,
+      order: 'desc',
+    }),
     selectShop: (shopId: number, accessToken: string) => request<AuthResult>(`/merchant/v1/patch/shops/${shopId}/current`, {
       method: 'POST',
       body: JSON.stringify({}),
