@@ -425,6 +425,7 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
       @toggle-like="toggleInspirationLike"
     />
     <KlContactServiceModal v-model="csModalOpen" />
+    <KlLoginGuideModal v-model="loginGuideOpen" />
   </div>
 </template>
 
@@ -437,10 +438,11 @@ const aiActivityBg = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.c
 const aiPosterBg = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_patdqnQSLL.png';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../standalone/api'
+import api, { hasAiAccessToken } from '../standalone/api'
 import type { AiInspirationItem } from '../standalone/types'
 import request from '../standalone/request'
 import KlContactServiceModal from '../components/kl/KlContactServiceModal.vue'
+import KlLoginGuideModal from '../components/kl/KlLoginGuideModal.vue'
 import KlDropdown from '../components/kl/KlDropdown.vue'
 import KlUserAvatarDropdown from '../components/kl/KlUserAvatarDropdown.vue'
 import { getStore } from '../standalone/storage'
@@ -604,6 +606,7 @@ const inspirationPreviewVisible = ref(false)
 const activeInspiration = ref<InspirationCard | null>(null)
 const isInspirationDetailLoading = ref(false)
 const csModalOpen = ref(false)
+const loginGuideOpen = ref(false)
 const messagePanelOpen = ref(false)
 const unreadCleared = ref(false)
 const messageTab = ref<'all' | 'unread'>('all')
@@ -718,6 +721,9 @@ function inferGenerationTaskMode(scene?: string | null, meta?: Record<string, an
 }
 
 async function refreshGeneratingTaskStatus() {
+  if (!hasAiAccessToken())
+    return
+
   try {
     const result = await api.ai.getAiConversationList({
       shop_id: getCurrentShopId(),
@@ -1028,6 +1034,11 @@ function getCurrentShopId() {
 }
 
 async function fetchAiPointsBalance() {
+  if (!hasAiAccessToken()) {
+    aiPointsBalance.value = null
+    return
+  }
+
   try {
     const result = await api.ai.getAiPoints({ shop_id: getCurrentShopId() })
     const balance = Number(result.balance)
@@ -1282,6 +1293,11 @@ async function handleGenerate() {
   if (!content) {
     klbMessage.info('请先告诉快灵你的想法')
     void nextTick(() => composerTextareaRef.value?.focus())
+    return
+  }
+
+  if (!hasAiAccessToken()) {
+    loginGuideOpen.value = true
     return
   }
 

@@ -374,6 +374,7 @@
     </div>
 
     <KlContactServiceModal v-model="csModalOpen" />
+    <KlLoginGuideModal v-model="loginGuideOpen" />
     <a-modal
       v-model:open="activitySuccessModalOpen"
       :width="400"
@@ -459,10 +460,11 @@ import ChatMessageWindow from './components/ai-chat/ChatMessageWindow.vue'
 import LottieStar from './components/ai-chat/LottieStar.vue'
 import TextType from './components/ai-chat/TextType.vue'
 
-import api from './standalone/api'
+import api, { hasAiAccessToken } from './standalone/api'
 import request from './standalone/request'
 const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png';
 import KlContactServiceModal from './components/kl/KlContactServiceModal.vue'
+import KlLoginGuideModal from './components/kl/KlLoginGuideModal.vue'
 import { resolveMainImageBackgroundColors } from './standalone/mainImageBackgroundColor'
 import { buildActivityPreviewUrl, buildActivityPreviewUrlSync } from './standalone/activityPreviewUrl'
 import { getStore } from './standalone/storage'
@@ -1102,6 +1104,7 @@ const currentConversation = ref<AiConversation | null>(null)
 const historyConversationTotal = ref(0)
 const aiPointsBalance = ref<number | null>(null)
 const csModalOpen = ref(false)
+const loginGuideOpen = ref(false)
 const isPageEntered = ref(false)
 const messagePanelOpen = ref(false)
 const unreadCleared = ref(false)
@@ -2682,6 +2685,15 @@ async function initializeConversation() {
   stopMessageWorking()
   resetGenerationTimer()
 
+  if (!hasAiAccessToken()) {
+    currentConversation.value = null
+    applySavedComposerSelection()
+    chatMessages.value = buildInitialMessages(activeMode.value)
+    syncActivityPreviewStatus()
+    resetChatLayoutMode()
+    return
+  }
+
   isConversationLoading.value = true
   try {
     if (routeConversationId.value) {
@@ -2702,6 +2714,9 @@ async function initializeConversation() {
 }
 
 async function refreshHistoryConversationTotal() {
+  if (!hasAiAccessToken())
+    return
+
   try {
     const result = await api.ai.getAiConversationList({
       shop_id: getCurrentShopId(),
@@ -2716,6 +2731,9 @@ async function refreshHistoryConversationTotal() {
 }
 
 async function refreshAiPointsBalance() {
+  if (!hasAiAccessToken())
+    return
+
   try {
     const result = await api.ai.getAiPoints({ shop_id: getCurrentShopId() })
     const balance = Number(result.balance)
@@ -4415,6 +4433,11 @@ async function submitAiConversationMessage(options: {
     onError,
     useExistingSubmitLock = false,
   } = options
+
+  if (!hasAiAccessToken()) {
+    loginGuideOpen.value = true
+    return false
+  }
 
   const shouldAcquireSubmitLock = !useExistingSubmitLock
   if (shouldAcquireSubmitLock) {

@@ -12,6 +12,21 @@ function getAccessToken() {
   return cookie ? decodeURIComponent(cookie[1]) : ''
 }
 
+export function hasAiAccessToken() {
+  return Boolean(getAccessToken())
+}
+
+export function getMerchantLoginUrl() {
+  const configured = String(import.meta.env.VITE_MERCHANT_LOGIN_URL || '').trim()
+  if (configured)
+    return configured
+
+  const hostname = window.location.hostname
+  return hostname === '127.0.0.1' || hostname === 'localhost'
+    ? `${window.location.protocol}//${hostname}:5173/login`
+    : ''
+}
+
 function withAccessToken(query: Query = {}) {
   if (query.access_token)
     return query
