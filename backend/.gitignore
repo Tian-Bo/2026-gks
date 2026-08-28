@@ -1,5 +1,6 @@
 /vendor/
 /.env
+/.env.*.backup
 /.phpunit.result.cache
 /storage/*.key
 /storage/logs/*
@@ -12,3 +13,4 @@
 !/storage/framework/views/.gitignore
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
+/database/*.sqlite

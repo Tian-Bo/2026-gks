@@ -36,6 +36,8 @@ composer serve
 
 将原后端 `../apis/.env` 中的 `DB_HOST`、`DB_PORT`、`DB_DATABASE`、`DB_USERNAME`、`DB_PASSWORD` 填入本项目 `backend/.env`，即可读写同一数据库。`AI_MERCHANT_ID` 与 `AI_SHOP_ID` 是独立演示模式下的上下文；接入原商户登录后，应由认证中间件替换这两个固定值。
 
+原 MySQL 在本机未启动时，可临时设置 `DB_CONNECTION=sqlite`，并将 `DB_DATABASE` 指向 `backend/database/ai.sqlite`，随后执行迁移创建本地 AI 演示数据表。该回退库仅用于独立开发和演示，不会同步原商户系统的数据。
+
 > 原库已有 AI 表时，**不要执行** `php artisan migrate`。本目录的三个迁移文件仅用于全新、独立的空数据库。
 
 ## 接口

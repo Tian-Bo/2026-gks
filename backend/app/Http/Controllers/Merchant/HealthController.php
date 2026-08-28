@@ -11,16 +11,17 @@ class HealthController extends Controller
 {
     public function show(): JsonResponse
     {
+        $connection = (string) config('database.default');
         try {
             DB::select('select 1');
         } catch (QueryException $exception) {
             return response()->json([
                 'status' => 'unavailable',
                 'service' => 'kl-ai-laravel',
-                'database' => 'mysql',
+                'database' => $connection,
             ], 503);
         }
 
-        return response()->json(['status' => 'ok', 'service' => 'kl-ai-laravel', 'database' => 'mysql']);
+        return response()->json(['status' => 'ok', 'service' => 'kl-ai-laravel', 'database' => $connection]);
     }
 }

@@ -25,7 +25,7 @@ class Handler extends ExceptionHandler
     {
         if ($request instanceof Request && $request->is('merchant/v1/*')) {
             if ($exception instanceof QueryException) {
-                return response()->json(['message' => 'AI 数据库不可用，请检查原项目 MySQL 服务。'], 503);
+                return response()->json(['message' => 'AI 数据库不可用，请检查当前数据库连接配置。'], 503);
             }
             if ($exception instanceof ModelNotFoundException) {
                 return response()->json(['message' => '资源不存在'], 404);
