@@ -38,6 +38,19 @@ composer serve
 
 原 MySQL 在本机未启动时，可临时设置 `DB_CONNECTION=sqlite`，并将 `DB_DATABASE` 指向 `backend/database/ai.sqlite`，随后执行迁移创建本地 AI 演示数据表。该回退库仅用于独立开发和演示，不会同步原商户系统的数据。
 
+## 本地 MySQL
+
+当前开发环境已创建隔离的本地 MySQL 实例：`127.0.0.1:3307`，数据库 `kl_ai_local`，应用用户 `kl_ai`。连接密码仅保存在忽略的 `backend/.env`；MySQL 二进制、数据目录和 root 凭据也在忽略的 `backend/.runtime/`，不会进入 Git。
+
+```bash
+cd backend
+./scripts/mysql-local.sh status
+./scripts/mysql-local.sh start
+./scripts/mysql-local.sh stop
+```
+
+Laravel 的 `DB_CONNECTION=mysql`、`DB_HOST=127.0.0.1`、`DB_PORT=3307` 已指向该实例。它与原项目的 `hdt_prod` 完全隔离；切回原库时可恢复忽略的 `backend/.env.mysql-unavailable.backup`，或重新填写原库的 `DB_*` 字段。
+
 > 原库已有 AI 表时，**不要执行** `php artisan migrate`。本目录的三个迁移文件仅用于全新、独立的空数据库。
 
 ## 接口
