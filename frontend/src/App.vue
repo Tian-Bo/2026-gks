@@ -302,18 +302,7 @@
             <div class="ai-activity-preview-shell">
               <div class="ai-activity-preview-screen">
                 <div
-                  v-if="latestGeneratedActivityCoverImage"
-                  class="h-full w-full overflow-y-auto bg-[#F8FAFC]"
-                >
-                  <img
-                    :src="latestGeneratedActivityCoverImage"
-                    :alt="generatedActivityTitle"
-                    referrerpolicy="no-referrer"
-                    class="block h-auto w-full"
-                  >
-                </div>
-                <div
-                  v-else-if="!displayedActivityPreviewUrl"
+                  v-if="!displayedActivityPreviewUrl"
                   class="flex h-full flex-col items-center justify-center bg-[#F8FAFC] px-[32px] text-center"
                 >
                   <div class="ai-activity-generating-status text-[14px] font-600 text-[#475467]">

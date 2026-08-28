@@ -62,6 +62,7 @@ function getProductTagClass(item: SelectedProduct) {
 <style scoped>
 .activity-selected-result {
   width: 100%;
+  box-sizing: border-box;
   border-radius: 12px;
   background: #f5f6f7;
   text-align: left;
