@@ -1,3 +1,8 @@
 export function getStore(key: string) {
-  return window.localStorage.getItem(key)
+  const value = window.localStorage.getItem(key)
+  if (value !== null)
+    return value
+
+  // Standalone AI page has no merchant-login shell to inject the active shop.
+  return key === 'shop_id' ? '1' : null
 }

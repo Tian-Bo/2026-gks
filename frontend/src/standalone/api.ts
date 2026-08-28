@@ -1,4 +1,4 @@
-const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'http://127.0.0.1:4311').replace(/\/+$/, '')
+const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'http://127.0.0.1:4312').replace(/\/+$/, '')
 
 type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
@@ -38,6 +38,13 @@ function unsupported(module: string): never {
   throw new Error(`${module} 不属于独立 AI 服务范围`)
 }
 
+function normalizeActivityStage(params: Query) {
+  const { stage, ...rest } = params
+  // `ai_activity_theme` was introduced by the extracted page only. The
+  // original merchant API returns the full component set when stage is absent.
+  return stage === 'ai_activity_theme' ? rest : params
+}
+
 const api = {
   ai: {
     getAiPageConfig: () => request('/merchant/v1/shop/ai/config'),
@@ -62,12 +69,18 @@ const api = {
     toggleContentReaction: () => unsupported('内容点赞'),
   },
   goods: {
-    getUnifiedItemList: async () => ({ items: [], total: 0 }),
+    getUnifiedItemList: (params: Query = {}) => request('/merchant/v1/items', {}, params),
   },
   activity: {
-    getActivityDetail: () => unsupported('活动详情'),
-    updateActivity: () => unsupported('活动编辑'),
-    releaseActivity: () => unsupported('活动发布'),
+    getActivityDetail: (activityId: number, params: Query = {}) => request(`/merchant/v1/activities/${activityId}`, {}, normalizeActivityStage(params)),
+    updateActivity: (activityId: number, data: Record<string, unknown>, params: Query = {}) => request(`/merchant/v1/patch/activities/${activityId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, normalizeActivityStage(params)),
+    releaseActivity: (activityId: number, data: Record<string, unknown> = { is_create: 1 }) => request(`/merchant/v1/patch/activity/release/${activityId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 }
 
