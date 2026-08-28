@@ -3,17 +3,19 @@ const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.
 type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
 
-function getAccessToken() {
-  const configured = String(import.meta.env.VITE_AI_ACCESS_TOKEN || '').trim()
-  if (configured)
-    return configured
-
+function getSelectedShopToken() {
+  // The merchant app replaces this cookie with the shop-scoped token returned
+  // by POST /merchant/v1/patch/shops/{shopId}/current.
   const cookie = document.cookie.match(/(?:^|;\s*)Admin-Token=([^;]*)/)
-  return cookie ? decodeURIComponent(cookie[1]) : ''
+  if (cookie)
+    return decodeURIComponent(cookie[1])
+
+  // Reserved for standalone deployments that cannot share the merchant cookie.
+  return String(import.meta.env.VITE_AI_ACCESS_TOKEN || '').trim()
 }
 
 export function hasAiAccessToken() {
-  return Boolean(getAccessToken())
+  return Boolean(getSelectedShopToken())
 }
 
 export function getMerchantLoginUrl() {
@@ -31,7 +33,7 @@ function withAccessToken(query: Query = {}) {
   if (query.access_token)
     return query
 
-  const token = getAccessToken()
+  const token = getSelectedShopToken()
   return token ? { ...query, access_token: token } : query
 }
 

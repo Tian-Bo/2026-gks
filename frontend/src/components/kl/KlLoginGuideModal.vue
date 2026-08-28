@@ -15,7 +15,7 @@
       </button>
       <div class="login-guide__mark">快灵</div>
       <h3>登录后即可开始生成</h3>
-      <p>请先登录商家后台，登录完成后返回此页面继续创作。</p>
+      <p>请先登录商家后台并选择店铺，完成后返回此页面继续创作。</p>
       <div class="login-guide__actions">
         <button type="button" class="login-guide__cancel" @click="close">暂不登录</button>
         <button type="button" class="login-guide__confirm" @click="goLogin">去登录</button>
