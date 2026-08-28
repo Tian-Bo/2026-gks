@@ -6,6 +6,7 @@ use App\Models\AiConversation;
 use App\Models\AiMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AiChatService
 {
@@ -114,15 +115,23 @@ class AiChatService
         }
         $conversation = $assistant->conversation;
         $isPoster = $conversation->scene === AiCatalog::POSTER_SCENE || data_get($assistant->meta, 'mode') === 'poster';
-        $reply = $isPoster ? $this->posterReply() : $this->activityReply($conversation);
-        $text = $reply['text'];
-        $components = $reply['components'];
         $seq = 1;
         $base = function () use (&$seq, $assistant, $conversation): array {
             return ['conversation_id' => $conversation->conversation_id, 'assistant_message_id' => $assistant->message_id, 'seq' => $seq++, 'created_at' => now()->toDateTimeString()];
         };
         $emit('connected', $base());
         $emit('message_start', $base());
+        try {
+            $reply = $isPoster ? $this->posterReply($conversation) : $this->activityReply($conversation);
+        } catch (Throwable $exception) {
+            $message = '图片生成失败：' . mb_substr(trim($exception->getMessage()), 0, 300);
+            $assistant->update(['status' => 'error', 'content' => $message, 'error_message' => $message, 'completed_at' => now()]);
+            $emit('error', array_merge($base(), ['message' => $message]));
+            $emit('done', array_merge($base(), ['finish_reason' => 'error']));
+            return;
+        }
+        $text = $reply['text'];
+        $components = $reply['components'];
         $emit('thinking_delta', array_merge($base(), ['delta' => $reply['thinking']]));
         foreach (preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY) as $char) {
             if ($this->isStopped($assistant->message_id)) {
@@ -141,7 +150,7 @@ class AiChatService
         }
         $meta = array_merge($assistant->meta ?? [], ['components' => $components]);
         if ($isPoster) {
-            $meta['poster'] = ['url' => AiCatalog::POSTER_IMAGE];
+            $meta['poster'] = $reply['poster'] ?? null;
         }
         if (!empty($reply['activity'])) {
             $meta['activity'] = $reply['activity'];
@@ -150,6 +159,9 @@ class AiChatService
         $conversation->update(['latest_message_at' => now()]);
         if (!empty($reply['activity'])) {
             $emit('activity_generated', array_merge($base(), ['activity' => $reply['activity']]));
+        }
+        if (!empty($meta['poster'])) {
+            $emit('poster_generated', array_merge($base(), ['poster' => $meta['poster']]));
         }
         $emit('message_completed', array_merge($base(), [
             'content' => $text,
@@ -236,18 +248,29 @@ class AiChatService
         if ($stepKey === 'activity_deep_confirm') {
             $draft['next_step'] = 'completed';
             $this->saveActivityDraft($conversation, $draft);
-            $activity = $this->generatedActivity($conversation, $draft);
+            $selection = is_array(data_get($conversation->meta, 'current_selection'))
+                ? data_get($conversation->meta, 'current_selection')
+                : [];
+            $generatedImage = app(RealImageGenerationService::class)->generateActivityCover(
+                (string) $conversation->title,
+                $draft,
+                $selection,
+            );
+            $coverImage = (string) $generatedImage['url'];
+            $activity = $this->generatedActivity($conversation, $draft, $coverImage);
 
             return [
                 'text' => '活动方案已生成，可在右侧预览中查看并继续调整。',
-                'thinking' => '正在生成活动页面与主视觉...',
+                'thinking' => '已完成活动主视觉生成。',
                 'components' => [[
                     'card_id' => $this->businessId('activity_cover'),
                     'type' => 'activity_cover_preview',
                     'status' => 'completed',
                     'title' => '活动主图已生成',
-                    'image_url' => AiCatalog::ACTIVITY_IMAGE,
+                    'image_url' => $coverImage,
                     'aspect_ratio' => '3:4',
+                    'image_provider' => $generatedImage['image_provider'],
+                    'provider_model' => $generatedImage['actual_model'],
                 ]],
                 'activity' => $activity,
             ];
@@ -393,20 +416,44 @@ class AiChatService
         ];
     }
 
-    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>} */
-    private function posterReply(): array
+    /** @return array{text: string, thinking: string, components: array<int, array<string, mixed>>, poster: array<string, mixed>} */
+    private function posterReply(AiConversation $conversation): array
     {
+        $user = $conversation->messages()->where('role', 'user')->orderByDesc('id')->first();
+        $options = is_array($user?->meta['options'] ?? null) ? $user->meta['options'] : [];
+        $generated = app(RealImageGenerationService::class)->generatePoster((string) ($user?->content ?? ''), $options);
+        $ratio = (string) ($options['aspect_ratio'] ?? '3:4');
+        [$width, $height] = $this->posterDimensions($ratio);
+        $poster = [
+            'url' => $generated['url'],
+            'width' => $width,
+            'height' => $height,
+            'aspect_ratio' => $ratio,
+            'style' => (string) ($options['style'] ?? 'general'),
+            'style_title' => (string) ($options['style'] ?? '通用风格'),
+            'image_model' => (string) ($options['image_model'] ?? $generated['actual_model']),
+            'provider_model' => $generated['actual_model'],
+            'image_provider' => $generated['image_provider'],
+            'prompt' => $generated['prompt'],
+            'revised_prompt' => $generated['revised_prompt'],
+            'status' => 'created',
+        ];
+
         return [
-            'text' => '我已拆解海报主题、目标人群和画面风格，正在生成主视觉方案。',
-            'thinking' => '正在构思画面结构和视觉风格...',
+            'text' => '海报已按你的主题、风格和比例生成完成。',
+            'thinking' => '已完成海报主视觉生成与画面整理。',
             'components' => [[
                 'card_id' => $this->businessId('poster'),
                 'type' => 'poster_image_preview',
                 'status' => 'completed',
-                'title' => 'AI 海报预览',
-                'image_url' => AiCatalog::POSTER_IMAGE,
-                'poster' => ['url' => AiCatalog::POSTER_IMAGE],
+                'title' => '海报已生成',
+                'image_url' => $poster['url'],
+                'aspect_ratio' => $ratio,
+                'width' => $width,
+                'height' => $height,
+                'poster' => $poster,
             ]],
+            'poster' => $poster,
         ];
     }
 
@@ -439,7 +486,7 @@ class AiChatService
     }
 
     /** @return array<string, mixed> */
-    private function generatedActivity(AiConversation $conversation, array $draft): array
+    private function generatedActivity(AiConversation $conversation, array $draft, ?string $coverImage = null): array
     {
         $activityId = 100000 + (int) (sprintf('%u', crc32($conversation->conversation_id)) % 899999);
         return [
@@ -447,10 +494,20 @@ class AiChatService
             'activity_model_id' => 1,
             'title' => trim((string) $conversation->title) ?: 'AI 生成活动方案',
             'status' => 'draft',
-            'cover_img' => AiCatalog::ACTIVITY_IMAGE,
+            'cover_img' => $coverImage ?: AiCatalog::ACTIVITY_IMAGE,
             'preview_url' => null,
             'draft' => $draft,
         ];
+    }
+
+    /** @return array{0: int, 1: int} */
+    private function posterDimensions(string $ratio): array
+    {
+        return match ($ratio) {
+            '1:1' => [1024, 1024],
+            '1:3' => [672, 2016],
+            default => [1024, 1360],
+        };
     }
 
     public function stop(string $assistantMessageId): AiMessage
