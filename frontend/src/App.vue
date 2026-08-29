@@ -684,6 +684,11 @@ function normalizeGeneratedActivity(activity: unknown): AiGeneratedActivity | nu
     || rawActivity.mainImage
     || '',
   ).trim()
+  const backgroundColor = String(
+    rawActivity.background_color
+    || rawActivity.backgroundColor
+    || '',
+  ).trim()
 
   return {
     activity_id: activityId,
@@ -691,6 +696,7 @@ function normalizeGeneratedActivity(activity: unknown): AiGeneratedActivity | nu
     title: String(rawActivity.title || ''),
     status: String(rawActivity.status || ''),
     ...(coverImg ? { cover_img: coverImg } : {}),
+    ...(backgroundColor ? { background_color: backgroundColor } : {}),
     preview_url: typeof rawActivity.preview_url === 'string' ? rawActivity.preview_url : null,
   }
 }
@@ -2935,6 +2941,15 @@ function getGeneratedActivityCoverImage(activity: AiGeneratedActivity | null | u
   ).trim()
 }
 
+function getGeneratedActivityBackgroundColor(activity: AiGeneratedActivity | null | undefined) {
+  const rawActivity = activity && typeof activity === 'object' ? activity as Record<string, any> : null
+  return String(
+    rawActivity?.background_color
+    || rawActivity?.backgroundColor
+    || '',
+  ).trim()
+}
+
 function getActivityPreviewCardImageUrl(card: ActivityAssistantCard | null | undefined) {
   if (!card || typeof card !== 'object')
     return ''
@@ -3174,6 +3189,21 @@ function syncGeneratedActivityThemeFromCover(
   const activityId = Number(activity?.activity_id || 0)
   if (!activityId)
     return Promise.resolve({ status: 'skipped' } satisfies ActivityThemeSyncResult)
+
+  // AI 后端已根据主图与风格写入背景色时，直接采用服务端结果。
+  // 这避免浏览器因主图跨域无法取色时，再次将背景覆盖为错误颜色。
+  const serverBackgroundColor = getGeneratedActivityBackgroundColor(activity)
+  if (serverBackgroundColor) {
+    const coverImg = String(options.coverImg || getGeneratedActivityCoverImage(activity) || '').trim()
+    syncedGeneratedActivityThemeKeys.add(getActivityThemeSyncKey(activityId, coverImg))
+    void reloadCurrentActivityPreviewFrame(activityId)
+    return Promise.resolve({
+      status: 'synced',
+      activityId,
+      coverImg,
+      backgroundColor: serverBackgroundColor,
+    } satisfies ActivityThemeSyncResult)
+  }
 
   const initialCoverImg = String(
     options.coverImg
