@@ -17,99 +17,9 @@
           <span class="ai-chat-brand-divider"></span>
           <img class="ai-chat-brand-logo" :src="aiLogo" alt="快灵 AI">
         </div>
-        <div class="flex items-center gap-[12px]">
-          <a-popover
-            v-model:open="messagePanelOpen"
-            trigger="click"
-            placement="bottomRight"
-            overlay-class-name="ai-chat-message-popover"
-          >
-            <template #content>
-              <div class="ai-chat-message-panel">
-                <div class="ai-chat-message-panel__header">
-                  <div class="ai-chat-message-panel__tabs">
-                    <button
-                      type="button"
-                      class="ai-chat-message-panel__tab"
-                      :class="{ 'ai-chat-message-panel__tab--active': messageTab === 'all' }"
-                      @click="messageTab = 'all'"
-                    >
-                      全部消息
-                    </button>
-                    <button
-                      type="button"
-                      class="ai-chat-message-panel__tab"
-                      :class="{ 'ai-chat-message-panel__tab--active': messageTab === 'unread' }"
-                      @click="messageTab = 'unread'"
-                    >
-                      未读
-                      <span v-if="hasUnreadMessages" class="ai-chat-message-panel__tab-dot" />
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    class="ai-chat-message-panel__clear iconfont icon-yijianqingchu"
-                    title="一键清除"
-                    aria-label="一键清除"
-                    @click="clearUnreadMessages"
-                  />
-                </div>
-
-                <div v-if="!displayMessageList.length" class="ai-chat-message-panel__empty">
-                  <img :src="messageEmptyIcon" alt="" class="ai-chat-message-panel__empty-icon" />
-                  <span>暂无消息</span>
-                </div>
-                <div v-else class="ai-chat-message-panel__list">
-                  <article
-                    v-for="message in displayMessageList"
-                    :key="message.id"
-                    class="ai-chat-message-panel__item"
-                  >
-                    <div class="ai-chat-message-panel__avatar">
-                      <span class="iconfont" :class="message.icon" />
-                    </div>
-                    <div class="ai-chat-message-panel__body">
-                      <div class="ai-chat-message-panel__meta">
-                        <span class="ai-chat-message-panel__sender">{{ message.sender }}</span>
-                        <span v-if="message.unread" class="ai-chat-message-panel__dot" />
-                        <span class="ai-chat-message-panel__time">{{ message.time }}</span>
-                      </div>
-                      <div class="ai-chat-message-panel__content">{{ message.content }}</div>
-                      <button
-                        v-if="message.actionText"
-                        type="button"
-                        class="ai-chat-message-panel__action"
-                        @click="handleMessageAction(message)"
-                      >
-                        <span>{{ message.actionText }}</span>
-                        <span class="iconfont icon-jinru ai-chat-message-panel__action-icon" />
-                      </button>
-                      <div v-if="message.preview" class="ai-chat-message-panel__preview">
-                        {{ message.preview }}
-                      </div>
-                    </div>
-                  </article>
-                </div>
-              </div>
-            </template>
-            <KlHoverAction icon-size="28px">
-              <i class="iconfont icon-xiaoxi"></i>
-            </KlHoverAction>
-          </a-popover>
+        <div v-if="hasAiAccessToken()" class="flex items-center gap-[12px]">
           <div
-            class="cursor-pointer mx-[4px] box-border min-w-[79px] h-[28px] flex items-center justify-between gap-[6px] bg-[#0F182A] rounded-[8px] p-[3px]"
-            @click="csModalOpen = true">
-            <span class="text-[12px] font-600 text-white ml-[3px]">升级</span>
-            <div
-              class="min-w-[40px] h-[22px] px-[4px] flex items-center rounded-[6px] justify-center text-[12px] gap-[3px] bg-[#ff5e56] text-white bg-[rgba(255,255,255,0.11)]">
-              <img class="h-[11px] w-[6px]"
-                src="https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1778576253_EM1JkwfJ1h.png">
-              {{ aiPointsBalanceText }}
-            </div>
-          </div>
-          <span class="ai-chat-header-divider"></span>
-          <div
-            class="transition-all duration-200 ease-out hover:shadow-[0_8px_20px_rgba(15,24,42,0.08)]"
+            class="text-[14px] transition-all duration-200 ease-out hover:shadow-[0_8px_20px_rgba(15,24,42,0.08)]"
             style="width: 106px; height: 36px; color:#0F182A; font-weight: 600;
              background-color: #fff; border-radius: 8px; cursor: pointer;
              display: flex; align-items: center; justify-content: center;" @click="router.push('/history')">
@@ -362,7 +272,6 @@
       </section>
     </div>
 
-    <KlContactServiceModal v-model="csModalOpen" />
     <KlLoginGuideModal v-model="loginGuideOpen" @authenticated="handleLoginAuthenticated" />
     <a-modal
       v-model:open="activitySuccessModalOpen"
@@ -449,10 +358,9 @@ import ChatMessageWindow from './components/ai-chat/ChatMessageWindow.vue'
 import LottieStar from './components/ai-chat/LottieStar.vue'
 import TextType from './components/ai-chat/TextType.vue'
 
-import api, { hasAiAccessToken } from './standalone/api'
+import api, { hasAiAccessToken, redirectToAiHomeForExpiredToken } from './standalone/api'
 import request from './standalone/request'
-const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png';
-import KlContactServiceModal from './components/kl/KlContactServiceModal.vue'
+const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png'
 import KlLoginGuideModal from './components/kl/KlLoginGuideModal.vue'
 import { resolveMainImageBackgroundColors } from './standalone/mainImageBackgroundColor'
 import { buildActivityPreviewUrl, buildActivityPreviewUrlSync } from './standalone/activityPreviewUrl'
@@ -485,6 +393,7 @@ const router = useRouter()
 const route = useRoute()
 const AI_SCENE = 'merchant_assistant'
 const deepConfirmSubmitText = '确认并开始生成'
+const merchantAdminBaseUrl = String(import.meta.env.VITE_MERCHANT_ADMIN_URL || 'https://admin.liebiankuai.com').replace(/\/+$/, '')
 
 type ModeKey = 'activity' | 'poster'
 type ThinkingMode = 'deep' | 'quick'
@@ -661,20 +570,7 @@ type PastedImage = {
   url: string
   name: string
 }
-type MessageItem = {
-  id: number
-  sender: string
-  time: string
-  content: string
-  icon: string
-  unread?: boolean
-  actionText?: string
-  actionPath?: string
-  preview?: string
-}
-
 const posterPreviewImage = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1778685865_9Ez3vzr1I9.png'
-const messageEmptyIcon = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1782959243_DOIxAu2HgN.png'
 
 function inlineIcon(content: string, viewBox = '0 0 20 20') {
   return `
@@ -1095,14 +991,8 @@ const draftMessage = ref('')
 const chatMessages = ref<ChatMessage[]>([])
 const currentConversation = ref<AiConversation | null>(null)
 const historyConversationTotal = ref(0)
-const aiPointsBalance = ref<number | null>(null)
-const csModalOpen = ref(false)
 const loginGuideOpen = ref(false)
 const isPageEntered = ref(false)
-const messagePanelOpen = ref(false)
-const unreadCleared = ref(false)
-const messageTab = ref<'all' | 'unread'>('all')
-const messageList = ref<MessageItem[]>([])
 const activitySuccessModalOpen = ref(false)
 const lastSuccessModalActivityId = ref(0)
 const isActivityReleaseSubmitting = ref(false)
@@ -1461,9 +1351,6 @@ const latestPosterImagePreviewCard = computed<PosterImagePreviewCard | null>(() 
 const currentActivityItemSelectorType = computed<ActivityItemSelectorType>(() =>
   normalizeActivityItemSelectorType(currentActivityItemSelectorCard.value?.selector_type),
 )
-const aiPointsBalanceText = computed(() =>
-  aiPointsBalance.value === null ? '--' : aiPointsBalance.value.toLocaleString('zh-CN'),
-)
 const activityGoalOptions = computed<SelectorItem[]>(() => {
   const options = getActivityGoalDurationCardSection(currentActivityGoalDurationCard.value, 'goal')?.options
   if (!options?.length)
@@ -1551,19 +1438,6 @@ const currentThinkingModeOption = computed(() =>
   thinkingModeOptions.find(item => item.value === selectedThinkingMode.value) || thinkingModeOptions[0],
 )
 const activityModelOptions = computed<SelectorItem[]>(() => aiPageConfig.value.activityModels)
-const normalizedMessageList = computed(() =>
-  messageList.value.map(message => ({
-    ...message,
-    unread: unreadCleared.value ? false : message.unread,
-  })),
-)
-const displayMessageList = computed(() => {
-  if (messageTab.value === 'unread')
-    return normalizedMessageList.value.filter(message => message.unread)
-
-  return normalizedMessageList.value
-})
-const hasUnreadMessages = computed(() => normalizedMessageList.value.some(message => message.unread))
 const hasDraftToSend = computed(() => Boolean(draftMessage.value.trim()))
 const isWaitingAiResponse = computed(() =>
   isMessageSubmitting.value || (isAiResponseBusy.value && latestAssistantMessage.value?.status !== 'streaming'),
@@ -2012,7 +1886,6 @@ watch(() => currentActivityStyleCard.value?.card_id, (cardId, previousCardId) =>
 })
 
 onMounted(() => {
-  void refreshAiPointsBalance()
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       isPageEntered.value = true
@@ -2721,26 +2594,6 @@ async function refreshHistoryConversationTotal() {
   catch {
     historyConversationTotal.value = historyConversationTotal.value || 0
   }
-}
-
-async function refreshAiPointsBalance() {
-  if (!hasAiAccessToken())
-    return
-
-  try {
-    const result = await api.ai.getAiPoints({ shop_id: getCurrentShopId() })
-    const balance = Number(result.balance)
-    aiPointsBalance.value = Number.isFinite(balance) ? balance : 0
-  }
-  catch {
-    aiPointsBalance.value = aiPointsBalance.value ?? null
-  }
-}
-
-function applyAiPointsBalance(value: unknown) {
-  const balance = Number(value)
-  if (Number.isFinite(balance))
-    aiPointsBalance.value = balance
 }
 
 function mapApiMessageToChatMessage(message: AiMessage): ChatMessage {
@@ -3990,6 +3843,11 @@ function parseStreamPayload<T>(event: Event) {
 }
 
 function handleStreamErrorMessage(messageId: string, errorMessage: string) {
+  if (/(请先登录|登录状态已失效|令牌.*失效|token.*(?:invalid|expired|无效|失效))/i.test(errorMessage)) {
+    redirectToAiHomeForExpiredToken()
+    return
+  }
+
   flushAssistantTypewriter(messageId)
   removeAiGenerationTask({ assistantMessageId: messageId })
   const currentMessage = chatMessages.value.find(item => item.messageId === messageId)
@@ -4152,7 +4010,6 @@ function connectAiStream(streamUrl: string, assistantMessageId: string) {
     })
     syncActivityPreviewStatus()
     recordGeneratedActivity(activity)
-    void refreshAiPointsBalance()
   })
 
   eventSource.addEventListener('poster_progress', (event) => {
@@ -4201,7 +4058,6 @@ function connectAiStream(streamUrl: string, assistantMessageId: string) {
       meta: mergeMessageMetaWithPoster(currentMessage?.meta, poster),
       seq: payload.seq,
     })
-    void refreshAiPointsBalance()
   })
 
   eventSource.addEventListener('message_completed', (event) => {
@@ -4240,8 +4096,6 @@ function connectAiStream(streamUrl: string, assistantMessageId: string) {
       })
       syncActivityPreviewStatus()
       recordGeneratedActivity(activity)
-      if (activity || poster)
-        void refreshAiPointsBalance()
       startAutoItemCoverProgressPolling()
     })
   })
@@ -4290,8 +4144,6 @@ function connectAiStream(streamUrl: string, assistantMessageId: string) {
 
     const payload = parseStreamPayload<AiStreamErrorEvent>(event)
     if (payload?.message && shouldProcessStreamSeq(assistantMessageId, payload.seq)) {
-      if (payload.code === 'ai_points_insufficient')
-        applyAiPointsBalance(payload.balance)
       handleStreamErrorMessage(assistantMessageId, payload.message)
       return
     }
@@ -4789,18 +4641,6 @@ function getMessageImageAttachments(message: ChatMessage) {
 
 function goBack() {
   router.push(backRoutePath.value)
-}
-
-function clearUnreadMessages() {
-  unreadCleared.value = true
-}
-
-function handleMessageAction(message: MessageItem) {
-  if (!message.actionPath)
-    return
-
-  messagePanelOpen.value = false
-  void router.push(message.actionPath)
 }
 
 function clearActivitySuggestionTimers() {
@@ -5689,13 +5529,11 @@ async function adoptCurrentResult() {
   if (!released)
     return
 
-  router.push({
-    path: '/activity',
-    query: {
-      from: 'ai',
-      activity_id: String(activityId),
-    },
-  })
+  await openMerchantAdmin(buildMerchantAdminUrl('/activity', {
+    from: 'ai',
+    activity_id: String(activityId),
+    ...(getCurrentShopId() ? { shop_id: String(getCurrentShopId()) } : {}),
+  }))
 }
 
 async function publishCurrentResult(options: { confirmed?: boolean } = {}) {
@@ -5733,21 +5571,38 @@ async function publishCurrentResult(options: { confirmed?: boolean } = {}) {
     ? Number(selectedActivityModel?.value)
     : 0
   const activityModelId = Number(latestGeneratedActivity.value?.activity_model_id || 0) || selectedActivityModelId
-  const route = router.resolve({
-    path: '/activityEditor',
-    query: {
-      type: getSelectedSettingValue('activityModel') || 'redbag',
-      id: String(activityId),
-      activity_id: String(activityId),
-      ...(activityModelId > 0 ? { activity_model_id: String(activityModelId) } : {}),
-      ...(selectedActivityModel?.label ? { activity_model_name: selectedActivityModel.label } : {}),
-      ...(getCurrentShopId() ? { shop_id: String(getCurrentShopId()) } : {}),
-      from: 'ai',
-      action: 'publish',
-    },
+  const activityEditorUrl = buildMerchantAdminUrl('/activityEditor', {
+    type: getSelectedSettingValue('activityModel') || 'redbag',
+    id: String(activityId),
+    activity_id: String(activityId),
+    ...(activityModelId > 0 ? { activity_model_id: String(activityModelId) } : {}),
+    ...(selectedActivityModel?.label ? { activity_model_name: selectedActivityModel.label } : {}),
+    ...(getCurrentShopId() ? { shop_id: String(getCurrentShopId()) } : {}),
+    from: 'ai',
+    action: 'publish',
   })
-  window.open(route.href, '_blank')
-  return true
+  return await openMerchantAdmin(activityEditorUrl)
+}
+
+function buildMerchantAdminUrl(path: string, query: Record<string, string>) {
+  const url = new URL(path, `${merchantAdminBaseUrl}/`)
+  Object.entries(query).forEach(([key, value]) => {
+    if (value)
+      url.searchParams.set(key, value)
+  })
+  return url.toString()
+}
+
+async function openMerchantAdmin(url: string) {
+  try {
+    await api.auth.syncMerchantAdminSession()
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return true
+  }
+  catch (error: any) {
+    klbMessage.error(error?.message || '登录状态同步失败，请稍后重试')
+    return false
+  }
 }
 
 async function handleSuccessModalPublish() {
@@ -6067,18 +5922,9 @@ function downloadFile(url: string, fileName: string) {
   display: inline-block;
 }
 
-.ai-chat-header-divider {
-  width: 1px;
-  height: 16px;
-  margin: 0 12px;
-  background: #CBD5E1;
-  display: inline-block;
-  flex: 0 0 auto;
-}
-
 .ai-chat-brand-logo {
-  width: 105px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   display: block;
 }
@@ -6444,231 +6290,6 @@ function downloadFile(url: string, fileName: string) {
     overflow-y: visible !important;
   }
 
-}
-
-.ai-chat-message-panel {
-  width: 410px;
-  max-height: min(640px, calc(100vh - 32px));
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.ai-chat-message-panel__header {
-  height: 60px;
-  flex: 0 0 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid #e3e9f1;
-  box-sizing: border-box;
-}
-
-.ai-chat-message-panel__tabs {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.ai-chat-message-panel__tab {
-  position: relative;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-  cursor: pointer;
-}
-
-.ai-chat-message-panel__tab--active {
-  color: #0f182a;
-  font-weight: 500;
-}
-
-.ai-chat-message-panel__tab-dot,
-.ai-chat-message-panel__dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #e62222;
-  display: inline-block;
-}
-
-.ai-chat-message-panel__tab-dot {
-  position: absolute;
-  top: 9px;
-  right: -8px;
-}
-
-.ai-chat-message-panel__clear {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #0f182a;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.ai-chat-message-panel__list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.ai-chat-message-panel__list::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.ai-chat-message-panel__empty {
-  flex: 1;
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #99a7bb;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.ai-chat-message-panel__empty-icon {
-  display: block;
-  width: 96px;
-  height: 96px;
-  object-fit: contain;
-}
-
-.ai-chat-message-panel__item {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  column-gap: 8px;
-  padding: 24px;
-  border-bottom: 1px solid #e3e9f1;
-  box-sizing: border-box;
-}
-
-.ai-chat-message-panel__item:last-child {
-  border-bottom: 0;
-}
-
-.ai-chat-message-panel__avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #f1f3f5;
-  color: #0f182a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ai-chat-message-panel__avatar .iconfont {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.ai-chat-message-panel__body {
-  min-width: 0;
-}
-
-.ai-chat-message-panel__meta {
-  min-height: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ai-chat-message-panel__sender {
-  color: #0f182a;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-}
-
-.ai-chat-message-panel__time {
-  color: #64748b;
-  font-size: 11px;
-  line-height: 15px;
-  font-weight: 400;
-}
-
-.ai-chat-message-panel__content {
-  margin-top: 10px;
-  color: #0f182a;
-  font-size: 16px;
-  line-height: 28px;
-  font-weight: 400;
-  white-space: pre-line;
-  word-break: break-word;
-}
-
-.ai-chat-message-panel__action {
-  margin-top: 10px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: #0f182a;
-  font-size: 16px;
-  line-height: 28px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.ai-chat-message-panel__action-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.ai-chat-message-panel__preview {
-  width: 322px;
-  max-width: 100%;
-  height: 108px;
-  margin-top: 12px;
-  border-radius: 4px;
-  background: #e3e9f1;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-:global(.ai-chat-message-popover) {
-  padding-top: 8px;
-}
-
-:global(.ai-chat-message-popover .ant-popover-inner) {
-  padding: 0;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 4px 12px 4px rgba(47, 48, 49, 0.1);
-  overflow: hidden;
-}
-
-:global(.ai-chat-message-popover .ant-popover-inner-content) {
-  padding: 0;
-}
-
-:global(.ai-chat-message-popover .ant-popover-arrow) {
-  display: none;
 }
 
 .ai-activity-success-modal {

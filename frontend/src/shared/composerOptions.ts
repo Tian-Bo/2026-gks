@@ -38,7 +38,7 @@ export type SelectorItem = {
   isDefault?: boolean
 }
 
-export const AI_IMAGE_MODEL_DISPLAY_NAME = 'Quickling-image'
+export const AI_IMAGE_MODEL_DISPLAY_NAME = 'GPT Image 2'
 
 export const promptOptionMap: Record<ModeKey, PromptOption[]> = {
   activity: [
@@ -73,8 +73,6 @@ export const posterSizeOptions: SelectorItem[] = [
 ]
 
 export const aiModelOptions: SelectorItem[] = [
-  { value: 'seedream-5.0-lite', label: AI_IMAGE_MODEL_DISPLAY_NAME, desc: '轻量生成模型，适合快速出稿', iconClass: 'icon-mozu' },
-  { value: 'seedream-4.4', label: AI_IMAGE_MODEL_DISPLAY_NAME, desc: '通用创作模型，适合稳定生成', iconClass: 'icon-mozu' },
   { value: 'gpt-image-2', label: AI_IMAGE_MODEL_DISPLAY_NAME, desc: '高质量视觉模型，适合精细画面', iconClass: 'icon-mozu' },
 ]
 

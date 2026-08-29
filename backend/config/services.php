@@ -102,4 +102,9 @@ return [
         'base_url' => env('AI_UPSTREAM_API_BASE_URL', 'http://klapis.liebiankuai.com'),
         'timeout' => (int) env('AI_UPSTREAM_TIMEOUT', 310),
     ],
+
+    'merchant_admin' => [
+        'cookie_domain' => env('MERCHANT_ADMIN_COOKIE_DOMAIN', '.liebiankuai.com'),
+        'cookie_secure' => filter_var(env('MERCHANT_ADMIN_COOKIE_SECURE', true), FILTER_VALIDATE_BOOL),
+    ],
 ];

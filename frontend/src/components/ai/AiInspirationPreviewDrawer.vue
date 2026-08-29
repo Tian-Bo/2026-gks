@@ -27,25 +27,9 @@
           <header class="ai-inspiration-preview__header">
             <div class="ai-inspiration-preview__brand">
               <span class="ai-inspiration-preview__brand-icon">
-                <img :src="displayAuthorIcon" alt="">
+                <img :src="officialLogo" alt="快灵AI官方">
               </span>
-              <span class="ai-inspiration-preview__brand-name">{{ item.author || '快灵出品' }}</span>
-            </div>
-
-            <div class="ai-inspiration-preview__actions">
-              <KlHoverAction
-                class="ai-inspiration-preview__icon-btn"
-                :class="{ 'is-liked': item.isLiked }"
-                icon-size="16px"
-                aria-label="收藏"
-                @click="emit('toggleLike', item)"
-              >
-                <i class="iconfont icon-hongxin"></i>
-              </KlHoverAction>
-              <span class="ai-inspiration-preview__count">{{ item.likeCount ?? item.likes ?? 0 }}</span>
-              <KlHoverAction class="ai-inspiration-preview__icon-btn" icon-size="16px" aria-label="分享">
-                <i class="iconfont icon-fenxiang"></i>
-              </KlHoverAction>
+              <span>快灵 AI 官方</span>
             </div>
           </header>
 
@@ -72,7 +56,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import KlHoverAction from '../kl/KlHoverAction.vue'
 import KlBottomDrawer from '../kl/KlBottomDrawer.vue'
 import PreviewMiniProgramHeader from '../preview/PreviewMiniProgramHeader.vue'
 
@@ -96,6 +79,7 @@ type AiInspirationPreviewItem = {
 }
 
 const open = defineModel<boolean>({ default: false })
+const officialLogo = '/kl-ai-logo.png'
 
 const props = defineProps<{
   item: AiInspirationPreviewItem | null
@@ -103,14 +87,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'adopt', item: AiInspirationPreviewItem): void
-  (e: 'toggleLike', item: AiInspirationPreviewItem): void
 }>()
-
-const authorIcon = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1778665743_pqhKFv1Ywb.png'
 
 const previewImage = computed(() => props.item?.previewImage || props.item?.image || '')
 const isActivityPreview = computed(() => props.item?.type === 'activity' && Boolean(props.item?.activityUrl))
-const displayAuthorIcon = computed(() => props.item?.authorIcon || authorIcon)
 const sourceLabel = computed(() => (props.item?.type === 'poster' ? '海报由AI生成' : '活动由AI生成'))
 const promptLabel = computed(() => (props.item?.type === 'poster' ? '海报提示词' : '活动提示词'))
 const displayPrompt = computed(() => props.item?.detail || props.item?.prompt || '')
@@ -219,34 +199,23 @@ const adoptIconClass = computed(() => (props.item?.type === 'activity' ? 'icon-r
 .ai-inspiration-preview__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  min-height: 32px;
 }
 
 .ai-inspiration-preview__brand {
-  flex: 1 1 auto;
-  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: #0f182a;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 22px;
 }
 
-.ai-inspiration-preview__brand-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .ai-inspiration-preview__brand-icon {
+  display: inline-flex;
   width: 32px;
   height: 32px;
-  flex: 0 0 32px;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -256,36 +225,9 @@ const adoptIconClass = computed(() => (props.item?.type === 'activity' ? 'icon-r
 
 .ai-inspiration-preview__brand-icon img {
   display: block;
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-}
-
-.ai-inspiration-preview__actions {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-}
-
-.ai-inspiration-preview__icon-btn {
-  color: #0f182a;
-}
-
-.ai-inspiration-preview__icon-btn.is-liked {
-  color: #e62222;
-}
-
-.ai-inspiration-preview__icon-btn .iconfont {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.ai-inspiration-preview__count {
-  margin: 0 16px 0 4px;
-  color: #0f182a;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .ai-inspiration-preview__meta {

@@ -1,5 +1,5 @@
 <template>
-  <div class="ai-page-scroll relative h-screen overflow-y-auto">
+  <div ref="pageScrollRef" class="ai-page-scroll relative h-screen overflow-y-auto">
     <div
       class="ai-page-background pointer-events-none absolute inset-0 bg-[radial-gradient(rgba(148,163,184,0.14)_0.8px,transparent_0.8px)] bg-[length:16px_16px]" />
     <header class="ai-page-header fixed inset-x-0 top-0 z-50 flex h-[72px] items-center justify-between px-[26px]">
@@ -14,7 +14,7 @@
           <span>回到工作台</span>
         </div>
       </div>
-      <div class="flex items-center gap-[12px]">
+      <div v-if="isAuthenticated" class="flex items-center gap-[12px]">
         <button
           v-if="generatingTaskCount"
           type="button"
@@ -30,97 +30,7 @@
         <KlHoverAction v-else icon-size="28px" @click="goHistory">
           <i class="iconfont icon-lishi1"></i>
         </KlHoverAction>
-        <a-popover
-          v-model:open="messagePanelOpen"
-          trigger="click"
-          placement="bottomRight"
-          overlay-class-name="ai-message-popover"
-        >
-          <template #content>
-            <div class="ai-message-panel">
-              <div class="ai-message-panel__header">
-                <div class="ai-message-panel__tabs">
-                  <button
-                    type="button"
-                    class="ai-message-panel__tab"
-                    :class="{ 'ai-message-panel__tab--active': messageTab === 'all' }"
-                    @click="messageTab = 'all'"
-                  >
-                    全部消息
-                  </button>
-                  <button
-                    type="button"
-                    class="ai-message-panel__tab"
-                    :class="{ 'ai-message-panel__tab--active': messageTab === 'unread' }"
-                    @click="messageTab = 'unread'"
-                  >
-                    未读
-                    <span v-if="hasUnreadMessages" class="ai-message-panel__tab-dot" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  class="ai-message-panel__clear iconfont icon-yijianqingchu"
-                  title="一键清除"
-                  aria-label="一键清除"
-                  @click="clearUnreadMessages"
-                />
-              </div>
-
-              <div v-if="!displayMessageList.length" class="ai-message-panel__empty">
-                <img :src="messageEmptyIcon" alt="" class="ai-message-panel__empty-icon" />
-                <span>暂无消息</span>
-              </div>
-              <div v-else class="ai-message-panel__list">
-                <article
-                  v-for="message in displayMessageList"
-                  :key="message.id"
-                  class="ai-message-panel__item"
-                >
-                  <div class="ai-message-panel__avatar">
-                    <span class="iconfont" :class="message.icon" />
-                  </div>
-                  <div class="ai-message-panel__body">
-                    <div class="ai-message-panel__meta">
-                      <span class="ai-message-panel__sender">{{ message.sender }}</span>
-                      <span v-if="message.unread" class="ai-message-panel__dot" />
-                      <span class="ai-message-panel__time">{{ message.time }}</span>
-                    </div>
-                    <div class="ai-message-panel__content">{{ message.content }}</div>
-                    <button
-                      v-if="message.actionText"
-                      type="button"
-                      class="ai-message-panel__action"
-                      @click="handleMessageAction(message)"
-                    >
-                      <span>{{ message.actionText }}</span>
-                      <span class="iconfont icon-jinru ai-message-panel__action-icon" />
-                    </button>
-                    <div v-if="message.preview" class="ai-message-panel__preview">
-                      {{ message.preview }}
-                    </div>
-                  </div>
-                </article>
-              </div>
-            </div>
-          </template>
-          <KlHoverAction icon-size="28px">
-            <i class="iconfont icon-xiaoxi"></i>
-          </KlHoverAction>
-        </a-popover>
-        <div
-          class="cursor-pointer mx-[4px] box-border min-w-[79px] h-[28px] flex items-center justify-between gap-[6px] bg-[#0F182A] rounded-[8px] p-[3px]"
-          @click="csModalOpen = true"
-        >
-          <span class="text-[12px] font-600 text-white ml-[3px]">升级</span>
-          <div
-            class="min-w-[40px] h-[22px] px-[4px] flex items-center rounded-[6px] justify-center text-[12px] gap-[3px] bg-[#ff5e56] text-white bg-[rgba(255,255,255,0.11)]">
-            <img class="h-[11px] w-[6px]"
-              src="https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1778576253_EM1JkwfJ1h.png">
-            {{ aiPointsBalanceText }}
-          </div>
-        </div>
-        <KlUserAvatarDropdown placement="bottomRight" logout-only />
+        <KlUserAvatarDropdown placement="bottomRight" @enter-merchant-admin="openMerchantAdmin" @logout="handleLogout" />
       </div>
     </header>
 
@@ -147,7 +57,7 @@
         </div>
       </section>
 
-      <section class="ai-home-composer-section mx-auto w-[728px] mt-[-20px] relative z-[2]">
+      <section ref="composerSectionRef" class="ai-home-composer-section mx-auto w-[728px] mt-[-20px] relative z-[2]">
         <div class="rounded-[24px] bg-#E3D8FD p-[4px]" style="border-radius: 24px;
 background: linear-gradient(90deg, #EAE1FF 0%, #E5E8FF 100%);
 box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
@@ -422,30 +332,27 @@ box-shadow: 0 10px 30px 0 rgba(128, 144, 155, 0.20);">
       v-model="inspirationPreviewVisible"
       :item="activeInspiration"
       @adopt="adoptInspiration"
-      @toggle-like="toggleInspirationLike"
     />
-    <KlContactServiceModal v-model="csModalOpen" />
     <KlLoginGuideModal v-model="loginGuideOpen" @authenticated="handleLoginAuthenticated" />
   </div>
 </template>
 
 <script setup lang="ts">
-const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png';
+const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png'
 const aiGreet = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298061_8MqOxrpmoE.png';
 const aiActivityImage = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298061_xlfmtIl9jM.png';
 const aiPosterImage = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_M7NJvh4H98.png';
 const aiActivityBg = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298060_Zuso5NI6zJ.png';
 const aiPosterBg = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_patdqnQSLL.png';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import api, { hasAiAccessToken } from '../standalone/api'
+import { useRoute, useRouter } from 'vue-router'
+import api, { clearSelectedShopToken, hasAiAccessToken } from '../standalone/api'
 import type { AiInspirationItem } from '../standalone/types'
 import request from '../standalone/request'
-import KlContactServiceModal from '../components/kl/KlContactServiceModal.vue'
 import KlLoginGuideModal from '../components/kl/KlLoginGuideModal.vue'
 import KlDropdown from '../components/kl/KlDropdown.vue'
 import KlUserAvatarDropdown from '../components/kl/KlUserAvatarDropdown.vue'
-import { getStore } from '../standalone/storage'
+import { getStore, removeStore } from '../standalone/storage'
 import { klbMessage } from '../standalone/klbMessage'
 import { buildActivityPreviewUrl, buildActivityPreviewUrlSync } from '../standalone/activityPreviewUrl'
 import AiInspirationPreviewDrawer from '../components/ai/AiInspirationPreviewDrawer.vue'
@@ -474,6 +381,8 @@ import {
 } from '../shared/generationTaskStatus'
 
 const router = useRouter()
+const route = useRoute()
+const merchantAdminBaseUrl = String(import.meta.env.VITE_MERCHANT_ADMIN_URL || 'https://admin.liebiankuai.com').replace(/\/+$/, '')
 type ModeTab = {
   key: ModeKey
   label: string
@@ -518,17 +427,17 @@ type PastedImage = {
   name: string
 }
 
-type MessageItem = {
-  id: number
-  sender: string
-  time: string
+type PendingHomeGeneration = {
+  createdAt: number
   content: string
-  icon: string
-  unread?: boolean
-  actionText?: string
-  actionPath?: string
-  preview?: string
+  mode: ModeKey
+  thinkingMode: 'deep' | 'quick'
+  imageModel: string
+  settingsByMode: Record<ModeKey, Record<PromptOptionKey, string>>
 }
+
+const pendingHomeGenerationStorageKey = 'kl_pending_home_generation'
+const pendingHomeGenerationMaxAge = 30 * 60 * 1000
 
 function inlineIcon(content: string, viewBox = '0 0 20 20') {
   return `
@@ -605,17 +514,13 @@ const inspirationLoadedImageKeys = ref<Set<string>>(new Set())
 const inspirationPreviewVisible = ref(false)
 const activeInspiration = ref<InspirationCard | null>(null)
 const isInspirationDetailLoading = ref(false)
-const csModalOpen = ref(false)
 const loginGuideOpen = ref(false)
-const messagePanelOpen = ref(false)
-const unreadCleared = ref(false)
-const messageTab = ref<'all' | 'unread'>('all')
-const messageEmptyIcon = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1782959243_DOIxAu2HgN.png'
-const messageList = ref<MessageItem[]>([])
+const isAuthenticated = ref(hasAiAccessToken())
 const isGenerating = ref(false)
-const aiPointsBalance = ref<number | null>(null)
 const generatingTaskCount = ref(getAiGenerationTaskCount())
 const uploadInputRef = ref<HTMLInputElement | null>(null)
+const pageScrollRef = ref<HTMLElement | null>(null)
+const composerSectionRef = ref<HTMLElement | null>(null)
 const composerContainerRef = ref<HTMLElement | null>(null)
 const composerTextareaRef = ref<HTMLTextAreaElement | null>(null)
 const isComposerActive = ref(false)
@@ -633,22 +538,6 @@ const selectedAiModelLabel = computed(() =>
 )
 const imageModelOptions = computed(() => aiPageConfig.value.models)
 const activityModelOptions = computed<SelectorItem[]>(() => aiPageConfig.value.activityModels)
-const normalizedMessageList = computed(() =>
-  messageList.value.map(message => ({
-    ...message,
-    unread: unreadCleared.value ? false : message.unread,
-  })),
-)
-const displayMessageList = computed(() => {
-  if (messageTab.value === 'unread')
-    return normalizedMessageList.value.filter(message => message.unread)
-
-  return normalizedMessageList.value
-})
-const hasUnreadMessages = computed(() => normalizedMessageList.value.some(message => message.unread))
-const aiPointsBalanceText = computed(() =>
-  aiPointsBalance.value === null ? '--' : aiPointsBalance.value.toLocaleString('zh-CN'),
-)
 const statusBadge = computed(() => {
   if (statusStage.value === 'submitted')
     return '任务已提交，生成中'
@@ -666,10 +555,13 @@ onMounted(() => {
   updateGeneratingTaskCount()
   unsubscribeGenerationTasks = subscribeAiGenerationTasks(updateGeneratingTaskCount)
   void refreshGeneratingTaskStatus()
-  void fetchAiPageConfig()
-  void fetchAiPointsBalance()
+  void fetchAiPageConfig().finally(() => {
+    void resumePendingHomeGeneration()
+  })
   void fetchAiQuickPrompts()
   void fetchAiInspirationCards()
+  if (route.query.login === '1')
+    loginGuideOpen.value = true
 })
 
 watch(activeMode, () => {
@@ -774,18 +666,6 @@ async function refreshGeneratingTaskStatus() {
   catch {
     updateGeneratingTaskCount()
   }
-}
-
-function clearUnreadMessages() {
-  unreadCleared.value = true
-}
-
-function handleMessageAction(message: MessageItem) {
-  if (!message.actionPath)
-    return
-
-  messagePanelOpen.value = false
-  void router.push(message.actionPath)
 }
 
 function getInspirationImageKey(item: InspirationCard) {
@@ -1037,20 +917,75 @@ function handleLoginAuthenticated() {
   window.location.reload()
 }
 
-async function fetchAiPointsBalance() {
-  if (!hasAiAccessToken()) {
-    aiPointsBalance.value = null
-    return
+function savePendingHomeGeneration(content: string) {
+  const pending: PendingHomeGeneration = {
+    createdAt: Date.now(),
+    content,
+    mode: activeMode.value,
+    thinkingMode: selectedThinkingMode.value,
+    imageModel: selectedAiModel.value,
+    settingsByMode: JSON.parse(JSON.stringify(selectedSettingsByMode.value)),
   }
+  window.sessionStorage.setItem(pendingHomeGenerationStorageKey, JSON.stringify(pending))
+}
 
+function takePendingHomeGeneration(): PendingHomeGeneration | null {
+  const rawValue = window.sessionStorage.getItem(pendingHomeGenerationStorageKey)
+  if (!rawValue)
+    return null
+
+  window.sessionStorage.removeItem(pendingHomeGenerationStorageKey)
   try {
-    const result = await api.ai.getAiPoints({ shop_id: getCurrentShopId() })
-    const balance = Number(result.balance)
-    aiPointsBalance.value = Number.isFinite(balance) ? balance : 0
+    const pending = JSON.parse(rawValue) as Partial<PendingHomeGeneration>
+    const isExpired = !pending.createdAt || Date.now() - pending.createdAt > pendingHomeGenerationMaxAge
+    const isValidMode = pending.mode === 'activity' || pending.mode === 'poster'
+    const isValidThinkingMode = pending.thinkingMode === 'deep' || pending.thinkingMode === 'quick'
+    if (isExpired || !isValidMode || !isValidThinkingMode || !pending.content?.trim() || !pending.settingsByMode)
+      return null
+
+    return pending as PendingHomeGeneration
   }
-  catch (error) {
-    console.warn('获取 AI 灵点余额失败:', error)
-    aiPointsBalance.value = null
+  catch {
+    return null
+  }
+}
+
+async function resumePendingHomeGeneration() {
+  const pending = takePendingHomeGeneration()
+  if (!pending)
+    return
+
+  activeMode.value = pending.mode
+  selectedThinkingMode.value = pending.thinkingMode
+  selectedAiModel.value = pending.imageModel
+  selectedSettingsByMode.value = pending.settingsByMode
+  promptText.value = pending.content
+  await nextTick()
+  resizeComposerTextarea()
+
+  if (hasAiAccessToken())
+    await handleGenerate()
+}
+
+function handleLogout() {
+  clearSelectedShopToken()
+  removeStore('shop_id')
+  isAuthenticated.value = false
+  loginGuideOpen.value = true
+  klbMessage.success('已退出登录')
+}
+
+async function openMerchantAdmin() {
+  try {
+    await api.auth.syncMerchantAdminSession()
+    const adminUrl = new URL('/', `${merchantAdminBaseUrl}/`)
+    const shopId = getCurrentShopId()
+    if (shopId)
+      adminUrl.searchParams.set('shop_id', String(shopId))
+    window.open(adminUrl.toString(), '_blank', 'noopener,noreferrer')
+  }
+  catch (error: any) {
+    klbMessage.error(error?.message || '登录状态同步失败，请稍后重试')
   }
 }
 
@@ -1260,33 +1195,22 @@ async function adoptInspiration(item: InspirationCard) {
   promptText.value = item.prompt
   activeMode.value = item.type
   inspirationPreviewVisible.value = false
+  await nextTick()
+  scrollToComposer()
 }
 
-async function toggleInspirationLike(item: InspirationCard) {
-  if (!item.inspirationId) {
-    klbMessage.warning('当前灵感信息不完整，暂时无法喜欢')
+function scrollToComposer() {
+  const scrollContainer = pageScrollRef.value
+  const composerSection = composerSectionRef.value
+  if (!scrollContainer || !composerSection)
     return
-  }
 
-  try {
-    const result = await api.ai.toggleContentReaction({
-      target_type: 'ai_inspiration',
-      target_id: item.inspirationId,
-      reaction_type: 'like',
-      shop_id: getCurrentShopId(),
-    })
-    const nextItem = {
-      ...item,
-      isLiked: Number(result.is_active || 0) === 1,
-      likeCount: Number(result.count || 0),
-      likes: String(Number(result.count || 0)),
-    }
-    activeInspiration.value = nextItem
-    inspirationCardList.value = inspirationCardList.value.map(card => card.id === item.id ? nextItem : card)
-  }
-  catch (error: any) {
-    klbMessage.error(error?.message || '操作失败，请稍后重试')
-  }
+  const top = scrollContainer.scrollTop
+    + composerSection.getBoundingClientRect().top
+    - scrollContainer.getBoundingClientRect().top
+    - 84
+
+  scrollContainer.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
 }
 
 async function handleGenerate() {
@@ -1301,6 +1225,7 @@ async function handleGenerate() {
   }
 
   if (!hasAiAccessToken()) {
+    savePendingHomeGeneration(content)
     loginGuideOpen.value = true
     return
   }
@@ -1950,231 +1875,6 @@ async function handleGenerate() {
 .ai-mode-tab:not(.is-active) .ai-mode-tab__asset {
   opacity: 0.2;
   transform: translateY(14px);
-}
-
-.ai-message-panel {
-  width: 410px;
-  max-height: min(640px, calc(100vh - 32px));
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
-  overflow: hidden;
-}
-
-.ai-message-panel__header {
-  height: 60px;
-  flex: 0 0 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid #e3e9f1;
-  box-sizing: border-box;
-}
-
-.ai-message-panel__tabs {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.ai-message-panel__tab {
-  position: relative;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-  cursor: pointer;
-}
-
-.ai-message-panel__tab--active {
-  color: #0f182a;
-  font-weight: 500;
-}
-
-.ai-message-panel__tab-dot,
-.ai-message-panel__dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #e62222;
-  display: inline-block;
-}
-
-.ai-message-panel__tab-dot {
-  position: absolute;
-  top: 9px;
-  right: -8px;
-}
-
-.ai-message-panel__clear {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #0f182a;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.ai-message-panel__list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.ai-message-panel__list::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.ai-message-panel__empty {
-  flex: 1;
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #99a7bb;
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.ai-message-panel__empty-icon {
-  display: block;
-  width: 96px;
-  height: 96px;
-  object-fit: contain;
-}
-
-.ai-message-panel__item {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  column-gap: 8px;
-  padding: 24px;
-  border-bottom: 1px solid #e3e9f1;
-  box-sizing: border-box;
-}
-
-.ai-message-panel__item:last-child {
-  border-bottom: 0;
-}
-
-.ai-message-panel__avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #f1f3f5;
-  color: #0f182a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ai-message-panel__avatar .iconfont {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.ai-message-panel__body {
-  min-width: 0;
-}
-
-.ai-message-panel__meta {
-  min-height: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ai-message-panel__sender {
-  color: #0f182a;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-}
-
-.ai-message-panel__time {
-  color: #64748b;
-  font-size: 11px;
-  line-height: 15px;
-  font-weight: 400;
-}
-
-.ai-message-panel__content {
-  margin-top: 10px;
-  color: #0f182a;
-  font-size: 16px;
-  line-height: 28px;
-  font-weight: 400;
-  white-space: pre-line;
-  word-break: break-word;
-}
-
-.ai-message-panel__action {
-  margin-top: 10px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: #0f182a;
-  font-size: 16px;
-  line-height: 28px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.ai-message-panel__action-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.ai-message-panel__preview {
-  width: 322px;
-  max-width: 100%;
-  height: 108px;
-  margin-top: 12px;
-  border-radius: 4px;
-  background: #e3e9f1;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-:global(.ai-message-popover) {
-  padding-top: 8px;
-}
-
-:global(.ai-message-popover .ant-popover-inner) {
-  padding: 0;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 4px 12px 4px rgba(47, 48, 49, 0.1);
-  overflow: hidden;
-}
-
-:global(.ai-message-popover .ant-popover-inner-content) {
-  padding: 0;
-}
-
-:global(.ai-message-popover .ant-popover-arrow) {
-  display: none;
 }
 
 :global(.ai-selector-dropdown) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
 class UpstreamAiProxyController extends Controller
@@ -16,6 +17,42 @@ class UpstreamAiProxyController extends Controller
     public function common(Request $request): Response
     {
         return $this->forward($request, $this->requestPath($request, 'common/v1/'));
+    }
+
+    /**
+     * Verify the selected shop token upstream, then make it available to the
+     * merchant admin as its established browser session cookie.
+     */
+    public function syncMerchantAdminSession(Request $request): Response
+    {
+        $accessToken = trim((string) ($request->bearerToken() ?: $request->input('access_token', '')));
+        abort_if($accessToken === '', 401, '请先登录');
+
+        $upstream = Http::acceptJson()
+            ->timeout((int) config('services.ai_upstream.timeout'))
+            ->get($this->url('merchant/v1/merchant', ['access_token' => $accessToken]));
+
+        if (!$upstream->successful()) {
+            return response($upstream->body(), $upstream->status(), [
+                'Content-Type' => $upstream->header('Content-Type') ?: 'application/json',
+            ]);
+        }
+
+        $cookieDomain = trim((string) config('services.merchant_admin.cookie_domain'));
+        abort_if($cookieDomain === '', 500, '未配置商户后台登录域');
+
+        return response()->json(['message' => '登录状态同步成功'])
+            ->withCookie(Cookie::create(
+                'Admin-Token',
+                $accessToken,
+                time() + 3600,
+                '/',
+                $cookieDomain,
+                (bool) config('services.merchant_admin.cookie_secure'),
+                false,
+                false,
+                Cookie::SAMESITE_LAX
+            ));
     }
 
     private function requestPath(Request $request, string $prefix): string

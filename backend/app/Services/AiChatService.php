@@ -601,7 +601,7 @@ class AiChatService
 
         abort_unless(in_array($url, $imageUrls, true), 404);
 
-        $response = Http::timeout(30)->connectTimeout(10)->get($url);
+        $response = Http::withOptions(['connect_timeout' => 10])->timeout(30)->get($url);
         abort_unless($response->successful(), 404);
         $contentType = strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
         abort_unless(str_starts_with($contentType, 'image/'), 404);

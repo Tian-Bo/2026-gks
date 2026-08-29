@@ -10,3 +10,7 @@ export function getStore(key: string) {
 export function setStore(key: string, value: string | number) {
   window.localStorage.setItem(key, String(value))
 }
+
+export function removeStore(key: string) {
+  window.localStorage.removeItem(key)
+}

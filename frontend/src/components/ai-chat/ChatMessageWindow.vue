@@ -2572,9 +2572,14 @@ watch(latestUserTurnScrollSignature, () => {
   margin-top: 28px !important;
 }
 
-.ai-auto-item-cover-module,
-.ai-auto-item-selection-module {
+.ai-auto-item-cover-module {
   width: min(100%, 672px);
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.ai-auto-item-selection-module {
+  width: 100%;
   box-sizing: border-box;
   overflow: visible;
 }

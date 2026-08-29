@@ -1,3 +1,5 @@
+import { redirectToAiHomeForExpiredToken } from './api'
+
 type Query = Record<string, string | number | boolean | null | undefined>
 
 const apiBaseUrl = String(import.meta.env.VITE_AI_API_BASE_URL || 'https://apis.liebiankuai.com').replace(/\/+$/, '')
@@ -32,6 +34,8 @@ async function request<T = unknown>(method: string, path: string, data?: unknown
   })
   const body = await response.json().catch(() => null)
   if (!response.ok) {
+    if (response.status === 401)
+      redirectToAiHomeForExpiredToken()
     const message = body && typeof body === 'object' && 'message' in body ? String(body.message || '') : ''
     throw new Error(message || `请求失败（${response.status}）`)
   }

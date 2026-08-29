@@ -1,0 +1,7 @@
+.DS_Store
+*.tar.gz
+
+# Local environment files may contain credentials.
+.env
+backend/.env
+frontend/.env.local

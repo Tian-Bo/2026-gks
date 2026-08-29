@@ -3,7 +3,8 @@
     <div class="kl-user-avatar-dropdown__avatar">A</div>
     <template #overlay>
       <div class="kl-user-avatar-dropdown__menu">
-        <button type="button" class="kl-user-avatar-dropdown__menu-item">退出登录</button>
+        <button v-if="!logoutOnly" type="button" class="kl-user-avatar-dropdown__menu-item" @click="emit('enter-merchant-admin')">前往裂变快</button>
+        <button type="button" class="kl-user-avatar-dropdown__menu-item" @click="emit('logout')">退出登录</button>
       </div>
     </template>
   </KlDropdown>
@@ -11,6 +12,8 @@
 
 <script setup lang="ts">
 import KlDropdown from './KlDropdown.vue'
+
+const emit = defineEmits<{ logout: []; 'enter-merchant-admin': [] }>()
 
 withDefaults(defineProps<{
   trigger?: Array<'click' | 'hover' | 'contextmenu'>

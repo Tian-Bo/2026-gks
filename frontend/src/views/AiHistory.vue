@@ -116,12 +116,6 @@
                   {{ inferModeLabel(item) }}
                 </div>
 
-                <KlDropdown :menu="getHistoryActionMenu(item)" placement="bottomRight" overlay-class-name="ai-history-action-dropdown">
-                  <button type="button" class="history-card__more" @click.stop aria-label="更多操作">
-                    <i class="iconfont icon-gengduo" aria-hidden="true"></i>
-                  </button>
-                </KlDropdown>
-
                 <div class="history-card__image-wrap">
                   <img
                     v-if="getHistoryPreviewImage(item)"
@@ -192,9 +186,6 @@
                   <span>{{ formatUpdatedAt(getHistoryTime(item)) }}</span>
                 </div>
                 <div class="ai-history-list__actions">
-                  <button type="button" class="ai-history-list__action" aria-label="删除历史生成" @click.stop="removeHistoryItem(item)">
-                    <i class="iconfont icon-shanchu" aria-hidden="true"></i>
-                  </button>
                   <button type="button" class="ai-history-list__action" aria-label="打开历史生成" @click.stop="openConversation(item)">
                     <i class="iconfont icon-bianji" aria-hidden="true"></i>
                   </button>
@@ -203,11 +194,11 @@
             </div>
 
             <footer class="ai-history-list-panel__footer">
-              <span>共 {{ filteredHistoryList.length }} 条</span>
+              <span>共 {{ historyTotal }} 条</span>
               <KlPagination
                 v-model:current="page"
                 :page-size="pageSize"
-                :total="filteredHistoryList.length"
+                :total="historyTotal"
                 :show-size-changer="false"
                 class="ai-history-pagination"
               />
@@ -215,11 +206,11 @@
           </div>
 
           <footer v-if="viewMode === 'grid'" class="ai-history-grid-footer">
-            <span>共 {{ filteredHistoryList.length }} 条</span>
+            <span>共 {{ historyTotal }} 条</span>
             <KlPagination
               v-model:current="page"
               :page-size="pageSize"
-              :total="filteredHistoryList.length"
+              :total="historyTotal"
               :show-size-changer="false"
               class="ai-history-pagination"
             />
@@ -339,18 +330,16 @@ const filteredHistoryList = computed(() => {
   })
 })
 const pagedHistoryList = computed(() => {
-  const start = (page.value - 1) * pageSize.value
-  return filteredHistoryList.value.slice(start, start + pageSize.value)
+  return filteredHistoryList.value
 })
 
 watch([activeType, statusFilter, keyword, viewMode], () => {
   page.value = 1
 })
 
-watch([filteredHistoryList, pageSize], () => {
-  const maxPage = Math.max(1, Math.ceil(filteredHistoryList.value.length / pageSize.value))
-  if (page.value > maxPage)
-    page.value = maxPage
+watch(page, () => {
+  if (hasAiAccessToken())
+    void fetchHistoryList()
 })
 
 onMounted(() => {
@@ -391,8 +380,8 @@ async function fetchHistoryList() {
   try {
     const result = await api.ai.getAiConversationList({
       shop_id: getCurrentShopId(),
-      page: 1,
-      per_page: 100,
+      page: page.value,
+      per_page: pageSize.value,
     })
 
     historyList.value = result.items || []
@@ -411,7 +400,7 @@ async function fetchHistoryList() {
 }
 
 async function refreshRemoteGeneratingStates(items: AiConversation[]) {
-  const targetItems = items.slice(0, 20).filter(item => item.conversation_id)
+  const targetItems = items.slice(0, 4).filter(item => item.conversation_id)
   if (!targetItems.length) {
     remoteGeneratingIds.value = new Set()
     return
@@ -575,39 +564,6 @@ function openConversation(item: AiConversation) {
   })
 }
 
-function getHistoryActionMenu(item: AiConversation) {
-  return {
-    items: [
-      {
-        key: 'edit',
-        label: '编辑',
-        icon: h('i', { class: 'iconfont icon-bianji' }),
-      },
-      {
-        key: 'delete',
-        label: '删除',
-        icon: h('i', { class: 'iconfont icon-shanchu' }),
-        danger: true,
-      },
-    ],
-    onClick: ({ key }: { key: string }) => {
-      if (key === 'edit') {
-        openConversation(item)
-        return
-      }
-
-      if (key === 'delete')
-        removeHistoryItem(item)
-    },
-  }
-}
-
-function removeHistoryItem(item: AiConversation) {
-  historyList.value = historyList.value.filter(history => history.conversation_id !== item.conversation_id)
-  historyTotal.value = Math.max(0, historyTotal.value - 1)
-  remoteGeneratingIds.value = new Set([...remoteGeneratingIds.value].filter(id => id !== item.conversation_id))
-  klbMessage.info('后端暂未提供历史删除接口，已从当前列表移除')
-}
 </script>
 
 <style scoped>

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('health', [HealthController::class, 'show']);
 
+Route::post('sso/admin/session', [UpstreamAiProxyController::class, 'syncMerchantAdminSession']);
+
 Route::post('merchants', [UpstreamAiProxyController::class, 'merchant']);
 Route::post('merchants/login', [UpstreamAiProxyController::class, 'merchant']);
 Route::post('merchants/login/by/phone', [UpstreamAiProxyController::class, 'merchant']);

@@ -121,8 +121,8 @@ class RealImageGenerationService
             : min(120, max(60, (int) env('AI_CHAT_POSTER_GENERATION_TIMEOUT', 90)));
         $client = Http::acceptJson()
             ->withToken((string) config('services.' . $provider . '.api_key'))
-            ->timeout($timeout)
-            ->connectTimeout(15);
+            ->withOptions(['connect_timeout' => 15])
+            ->timeout($timeout);
 
         if ($provider === 'seedream') {
             return $client->post(rtrim((string) config('services.seedream.base_url'), '/') . '/images/generations', [

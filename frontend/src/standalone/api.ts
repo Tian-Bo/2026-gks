@@ -5,8 +5,13 @@ type QueryValue = string | number | boolean | null | undefined
 type Query = Record<string, QueryValue>
 type AuthResult = { access_token: string; shop_id?: number; default_shop_id?: number }
 type ShopListResult = { current_shop_id?: number; items?: Array<{ id: number }> }
+let redirectingForExpiredToken = false
+const forcedLogoutStorageKey = 'kl_ai_forced_logout'
 
 function getSelectedShopToken() {
+  if (window.sessionStorage.getItem(forcedLogoutStorageKey) === '1')
+    return ''
+
   // The merchant app replaces this cookie with the shop-scoped token returned
   // by POST /merchant/v1/patch/shops/{shopId}/current.
   const cookie = document.cookie.match(/(?:^|;\s*)Admin-Token=([^;]*)/)
@@ -22,7 +27,37 @@ export function hasAiAccessToken() {
 }
 
 export function saveSelectedShopToken(token: string) {
+  window.sessionStorage.removeItem(forcedLogoutStorageKey)
   document.cookie = `Admin-Token=${encodeURIComponent(token)}; Path=/; SameSite=Lax`
+}
+
+export function clearSelectedShopToken() {
+  document.cookie = 'Admin-Token=; Path=/; Max-Age=0; SameSite=Lax'
+
+  const hostname = window.location.hostname.toLowerCase()
+  const sharedDomain = hostname === 'liebiankuai.com' || hostname.endsWith('.liebiankuai.com')
+    ? '.liebiankuai.com'
+    : hostname === 'kuailiebian.cn' || hostname.endsWith('.kuailiebian.cn')
+      ? '.kuailiebian.cn'
+      : ''
+  if (sharedDomain)
+    document.cookie = `Admin-Token=; Path=/; Domain=${sharedDomain}; Max-Age=0; SameSite=Lax`
+}
+
+export function redirectToAiHomeForExpiredToken() {
+  clearSelectedShopToken()
+  window.localStorage.removeItem('shop_id')
+  window.sessionStorage.setItem(forcedLogoutStorageKey, '1')
+
+  if (redirectingForExpiredToken)
+    return
+
+  redirectingForExpiredToken = true
+  const homeUrl = new URL('/', window.location.origin)
+  homeUrl.searchParams.set('login', '1')
+  if (window.location.pathname === '/' && window.location.search === homeUrl.search)
+    return
+  window.location.replace(homeUrl.toString())
 }
 
 export function getMerchantLoginUrl() {
@@ -44,9 +79,10 @@ function withAccessToken(query: Query = {}) {
   return token ? { ...query, access_token: token } : query
 }
 
-function buildUrl(path: string, query: Query = {}) {
+function buildUrl(path: string, query: Query = {}, includeAccessToken = true) {
   const url = new URL(path, `${apiBaseUrl}/`)
-  Object.entries(withAccessToken(query)).forEach(([key, value]) => {
+  const resolvedQuery = includeAccessToken ? withAccessToken(query) : query
+  Object.entries(resolvedQuery).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== '')
       url.searchParams.set(key, String(value))
   })
@@ -60,8 +96,8 @@ function toApiError(status: number, body: unknown) {
   return new Error(message || `AI 服务请求失败（${status}）`)
 }
 
-async function request<T>(path: string, init: RequestInit = {}, query: Query = {}): Promise<T> {
-  const response = await fetch(buildUrl(path, query), {
+async function request<T>(path: string, init: RequestInit = {}, query: Query = {}, includeAccessToken = true): Promise<T> {
+  const response = await fetch(buildUrl(path, query, includeAccessToken), {
     ...init,
     credentials: 'include',
     headers: {
@@ -71,8 +107,11 @@ async function request<T>(path: string, init: RequestInit = {}, query: Query = {
     },
   })
   const body = await response.json().catch(() => null)
-  if (!response.ok)
+  if (!response.ok) {
+    if (response.status === 401 && includeAccessToken)
+      redirectToAiHomeForExpiredToken()
     throw toApiError(response.status, body)
+  }
   return body as T
 }
 
@@ -82,26 +121,13 @@ function unsupported(module: string): never {
 
 function normalizeActivityStage(params: Query) {
   const { stage, ...rest } = params
-  // `ai_activity_theme` was introduced by the extracted page only. The
-  // original merchant API returns the full component set when stage is absent.
+  // The API returns the full component set when stage is absent.
   return stage === 'ai_activity_theme' ? rest : params
 }
 
 const api = {
   auth: {
     loginByPassword: (data: { phone: string; password: string }) => request<AuthResult>('/merchant/v1/merchants/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    loginByCode: (data: { phone: string; code: string }) => request<AuthResult>('/merchant/v1/merchants/login/by/phone', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    register: (data: { phone: string; password: string; code: string }) => request<AuthResult>('/merchant/v1/merchants', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    sendSmsCode: (data: { phone: string; cms_type: 1 | 2 }) => request('/common/v1/sendCode', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -113,6 +139,17 @@ const api = {
       method: 'POST',
       body: JSON.stringify({}),
     }, { access_token: accessToken }),
+    syncMerchantAdminSession: () => {
+      const accessToken = getSelectedShopToken()
+      if (!accessToken)
+        return Promise.reject(new Error('请先登录'))
+
+      return request<{ message?: string }>('/merchant/v1/sso/admin/session', {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }, {}, false)
+    },
   },
   ai: {
     getAiPageConfig: () => request('/merchant/v1/shop/ai/config'),
