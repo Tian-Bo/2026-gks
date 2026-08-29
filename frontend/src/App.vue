@@ -3190,20 +3190,9 @@ function syncGeneratedActivityThemeFromCover(
   if (!activityId)
     return Promise.resolve({ status: 'skipped' } satisfies ActivityThemeSyncResult)
 
-  // AI 后端已根据主图与风格写入背景色时，直接采用服务端结果。
-  // 这避免浏览器因主图跨域无法取色时，再次将背景覆盖为错误颜色。
+  // 创建时主图仍可能在队列中生成，消息里的背景色可能还是默认值。
+  // 必须等待主图可读后再取色，不能据此提前结束同步。
   const serverBackgroundColor = getGeneratedActivityBackgroundColor(activity)
-  if (serverBackgroundColor) {
-    const coverImg = String(options.coverImg || getGeneratedActivityCoverImage(activity) || '').trim()
-    syncedGeneratedActivityThemeKeys.add(getActivityThemeSyncKey(activityId, coverImg))
-    void reloadCurrentActivityPreviewFrame(activityId)
-    return Promise.resolve({
-      status: 'synced',
-      activityId,
-      coverImg,
-      backgroundColor: serverBackgroundColor,
-    } satisfies ActivityThemeSyncResult)
-  }
 
   const initialCoverImg = String(
     options.coverImg
@@ -3268,6 +3257,15 @@ function syncGeneratedActivityThemeFromCover(
       }
 
       if (!coverImg || !colorResult) {
+        if (serverBackgroundColor) {
+          await reloadCurrentActivityPreviewFrame(activityId)
+          return {
+            status: 'synced',
+            activityId,
+            coverImg,
+            backgroundColor: serverBackgroundColor,
+          } satisfies ActivityThemeSyncResult
+        }
         return {
           status: 'pending-cover',
           activityId,
