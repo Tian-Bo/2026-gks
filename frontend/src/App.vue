@@ -362,7 +362,6 @@ import api, { hasAiAccessToken, redirectToAiHomeForExpiredToken } from './standa
 import request from './standalone/request'
 const aiLogo = 'https://kuailiebian-1305584593.cos.ap-guangzhou.myqcloud.com/1784298062_3ELdZZ4ftV.png'
 import KlLoginGuideModal from './components/kl/KlLoginGuideModal.vue'
-import { resolveMainImageBackgroundColors } from './standalone/mainImageBackgroundColor'
 import { buildActivityPreviewUrl, buildActivityPreviewUrlSync } from './standalone/activityPreviewUrl'
 import { getStore } from './standalone/storage'
 import { klbMessage } from './standalone/klbMessage'
@@ -1083,9 +1082,7 @@ let assistantTypewriterTickCount = 0
 const AI_ACTIVITY_THEME_STAGE = 'activity_edit' as const
 const AI_ACTIVITY_THEME_SYNC_RETRY_LIMIT = 6
 const AI_ACTIVITY_THEME_SYNC_RETRY_DELAY = 800
-const AI_ACTIVITY_THEME_CONFIRM_RETRY_LIMIT = 4
-const AI_ACTIVITY_THEME_CONFIRM_RETRY_DELAY = 500
-type ActivityThemeSyncStatus = 'synced' | 'fallback' | 'pending-cover' | 'failed' | 'skipped'
+type ActivityThemeSyncStatus = 'synced' | 'pending-cover' | 'failed' | 'skipped'
 type ActivityThemeSyncResult = {
   status: ActivityThemeSyncStatus
   activityId?: number
@@ -1093,8 +1090,6 @@ type ActivityThemeSyncResult = {
   backgroundColor?: string
   reason?: string
 }
-const syncedGeneratedActivityThemeKeys = new Set<string>()
-const syncingGeneratedActivityThemeJobs = new Map<string, Promise<ActivityThemeSyncResult>>()
 const ACTIVITY_SUGGESTION_IMAGES = [
   '/ai/suggestions/operations-colleague.png',
   '/ai/suggestions/precise-audience.png',
@@ -2916,40 +2911,6 @@ function appendAssistantThinkingDelta(messageId: string, delta: string, seq?: nu
   ensureAssistantTypewriterTimer()
 }
 
-function normalizeColorValue(value: unknown) {
-  return String(value || '').trim().toUpperCase()
-}
-
-function getActivityThemeSyncKey(activityId: number, coverImg: string) {
-  return `${activityId}:${coverImg || 'auto'}`
-}
-
-function isActivityBackgroundColorSynced(detail: Record<string, any> | null | undefined, backgroundColor: string) {
-  return normalizeColorValue(getActivityDetailBackgroundColor(detail)) === normalizeColorValue(backgroundColor)
-}
-
-function getGeneratedActivityCoverImage(activity: AiGeneratedActivity | null | undefined) {
-  const rawActivity = activity && typeof activity === 'object' ? activity as Record<string, any> : null
-  return String(
-    rawActivity?.cover_img
-    || rawActivity?.coverImg
-    || rawActivity?.cover
-    || rawActivity?.image_url
-    || rawActivity?.main_image
-    || rawActivity?.mainImage
-    || '',
-  ).trim()
-}
-
-function getGeneratedActivityBackgroundColor(activity: AiGeneratedActivity | null | undefined) {
-  const rawActivity = activity && typeof activity === 'object' ? activity as Record<string, any> : null
-  return String(
-    rawActivity?.background_color
-    || rawActivity?.backgroundColor
-    || '',
-  ).trim()
-}
-
 function getActivityPreviewCardImageUrl(card: ActivityAssistantCard | null | undefined) {
   if (!card || typeof card !== 'object')
     return ''
@@ -3153,158 +3114,26 @@ function waitActivityThemeSyncRetry() {
   return new Promise(resolve => setTimeout(resolve, AI_ACTIVITY_THEME_SYNC_RETRY_DELAY))
 }
 
-function waitActivityThemeConfirmRetry() {
-  return new Promise(resolve => setTimeout(resolve, AI_ACTIVITY_THEME_CONFIRM_RETRY_DELAY))
-}
-
-async function waitForActivityBackgroundColor(activityId: number, backgroundColor: string) {
-  let latestDetail: Record<string, any> | null = null
-  for (let attempt = 0; attempt < AI_ACTIVITY_THEME_CONFIRM_RETRY_LIMIT; attempt += 1) {
-    try {
-      latestDetail = await api.activity.getActivityDetail(activityId, { stage: AI_ACTIVITY_THEME_STAGE }) as Record<string, any>
-      if (isActivityBackgroundColorSynced(latestDetail, backgroundColor))
-        return latestDetail
-    } catch (error) {
-      console.warn('[ai-chat] confirm activity theme color failed:', {
-        activityId,
-        attempt: attempt + 1,
-        error,
-      })
-    }
-
-    if (attempt < AI_ACTIVITY_THEME_CONFIRM_RETRY_LIMIT - 1)
-      await waitActivityThemeConfirmRetry()
-  }
-
-  return latestDetail
-}
-
-function syncGeneratedActivityThemeFromCover(
+async function syncGeneratedActivityThemeFromCover(
   activity: AiGeneratedActivity | null | undefined,
   options: { coverImg?: string, waitForCover?: boolean } = {},
 ) {
   if (activeMode.value !== 'activity' || isMockPreviewMode.value)
-    return Promise.resolve({ status: 'skipped' } satisfies ActivityThemeSyncResult)
+    return { status: 'skipped' } satisfies ActivityThemeSyncResult
 
   const activityId = Number(activity?.activity_id || 0)
   if (!activityId)
-    return Promise.resolve({ status: 'skipped' } satisfies ActivityThemeSyncResult)
+    return { status: 'skipped' } satisfies ActivityThemeSyncResult
 
-  // 创建时主图仍可能在队列中生成，消息里的背景色可能还是默认值。
-  // 必须等待主图可读后再取色，不能据此提前结束同步。
-  const serverBackgroundColor = getGeneratedActivityBackgroundColor(activity)
-
-  const initialCoverImg = String(
-    options.coverImg
-    || getLatestActivityCoverPreviewImage(activityId)
-    || getGeneratedActivityCoverImage(activity)
-    || '',
-  ).trim()
-  const initialSyncKey = getActivityThemeSyncKey(activityId, initialCoverImg)
-  if (initialCoverImg && syncedGeneratedActivityThemeKeys.has(initialSyncKey)) {
-    return Promise.resolve({
-      status: 'synced',
-      activityId,
-      coverImg: initialCoverImg,
-    } satisfies ActivityThemeSyncResult)
-  }
-
-  const currentJob = syncingGeneratedActivityThemeJobs.get(initialSyncKey)
-  if (currentJob)
-    return currentJob
-
-  const syncJob = (async () => {
+  // 背景色由后端在主图原始二进制阶段计算并写入 activities.background_color。
+  // 右侧预览只在同时读到主图和背景色后刷新，前端不再取色或回写活动。
+  const retryLimit = options.waitForCover ? AI_ACTIVITY_THEME_SYNC_RETRY_LIMIT : 1
+  for (let attempt = 0; attempt < retryLimit; attempt += 1) {
     try {
-      let coverImg = initialCoverImg
-      let detail: Record<string, any> | null = null
-      let currentBackgroundColor = ''
-      let colorResult: Awaited<ReturnType<typeof resolveMainImageBackgroundColors>> | null = null
-      const retryLimit = options.waitForCover ? AI_ACTIVITY_THEME_SYNC_RETRY_LIMIT : 1
-
-      for (let attempt = 0; attempt < retryLimit; attempt += 1) {
-        coverImg = String(
-          options.coverImg
-          || getLatestActivityCoverPreviewImage(activityId)
-          || coverImg
-          || '',
-        ).trim()
-
-        try {
-          detail = await api.activity.getActivityDetail(activityId, { stage: AI_ACTIVITY_THEME_STAGE }) as Record<string, any>
-        } catch (error) {
-          console.warn('[ai-chat] load activity detail for theme failed:', error)
-        }
-
-        coverImg = getActivityDetailCoverImage(detail) || coverImg
-        currentBackgroundColor = getActivityDetailBackgroundColor(detail)
-
-        if (coverImg) {
-          colorResult = await resolveMainImageBackgroundColors(coverImg)
-          if (colorResult?.source === 'sampled')
-            break
-
-          console.warn('[ai-chat] activity theme color fallback, will retry if possible:', {
-            activityId,
-            attempt: attempt + 1,
-            retryLimit,
-            reason: colorResult?.reason || 'unknown',
-            coverImg,
-          })
-        }
-
-        if (attempt < retryLimit - 1)
-          await waitActivityThemeSyncRetry()
-      }
-
-      if (!coverImg || !colorResult) {
-        if (serverBackgroundColor) {
-          await reloadCurrentActivityPreviewFrame(activityId)
-          return {
-            status: 'synced',
-            activityId,
-            coverImg,
-            backgroundColor: serverBackgroundColor,
-          } satisfies ActivityThemeSyncResult
-        }
-        return {
-          status: 'pending-cover',
-          activityId,
-          reason: !coverImg ? 'cover-not-ready' : 'color-result-empty',
-        } satisfies ActivityThemeSyncResult
-      }
-
-      const backgroundColor = String(colorResult.colors.pageBackground || '').trim()
-      if (!backgroundColor) {
-        return {
-          status: 'failed',
-          activityId,
-          coverImg,
-          reason: 'empty-background-color',
-        } satisfies ActivityThemeSyncResult
-      }
-
-      const finalSyncKey = getActivityThemeSyncKey(activityId, coverImg)
-
-      if (colorResult.source !== 'sampled') {
-        if (!currentBackgroundColor) {
-          await api.activity.updateActivity(
-            activityId,
-            { background_color: backgroundColor },
-            { stage: AI_ACTIVITY_THEME_STAGE },
-          )
-          await waitForActivityBackgroundColor(activityId, backgroundColor)
-        }
-        return {
-          status: 'fallback',
-          activityId,
-          coverImg,
-          backgroundColor,
-          reason: colorResult.reason || 'fallback',
-        } satisfies ActivityThemeSyncResult
-      }
-
-      if (normalizeColorValue(currentBackgroundColor) === normalizeColorValue(backgroundColor)) {
-        syncedGeneratedActivityThemeKeys.add(finalSyncKey)
+      const detail = await api.activity.getActivityDetail(activityId, { stage: AI_ACTIVITY_THEME_STAGE }) as Record<string, any>
+      const coverImg = getActivityDetailCoverImage(detail)
+      const backgroundColor = getActivityDetailBackgroundColor(detail)
+      if (coverImg && backgroundColor) {
         await reloadCurrentActivityPreviewFrame(activityId)
         return {
           status: 'synced',
@@ -3313,51 +3142,19 @@ function syncGeneratedActivityThemeFromCover(
           backgroundColor,
         } satisfies ActivityThemeSyncResult
       }
-
-      await api.activity.updateActivity(
-        activityId,
-        { background_color: backgroundColor },
-        { stage: AI_ACTIVITY_THEME_STAGE },
-      )
-      const confirmedDetail = await waitForActivityBackgroundColor(activityId, backgroundColor)
-      if (!isActivityBackgroundColorSynced(confirmedDetail, backgroundColor)) {
-        console.warn('[ai-chat] activity theme color saved but not confirmed:', {
-          activityId,
-          coverImg,
-          backgroundColor,
-          currentBackgroundColor: getActivityDetailBackgroundColor(confirmedDetail),
-        })
-        return {
-          status: 'failed',
-          activityId,
-          coverImg,
-          backgroundColor,
-          reason: 'save-not-confirmed',
-        } satisfies ActivityThemeSyncResult
-      }
-
-      syncedGeneratedActivityThemeKeys.add(finalSyncKey)
-      await reloadCurrentActivityPreviewFrame(activityId)
-      return {
-        status: 'synced',
-        activityId,
-        coverImg,
-        backgroundColor,
-      } satisfies ActivityThemeSyncResult
     } catch (error) {
-      console.warn('[ai-chat] sync generated activity theme failed:', error)
-      return {
-        status: 'failed',
-        activityId,
-        reason: String((error as any)?.message || error || 'unknown'),
-      } satisfies ActivityThemeSyncResult
-    } finally {
-      syncingGeneratedActivityThemeJobs.delete(initialSyncKey)
+      console.warn('[ai-chat] wait for server activity theme failed:', { activityId, error })
     }
-  })()
 
-  syncingGeneratedActivityThemeJobs.set(initialSyncKey, syncJob)
-  return syncJob
+    if (attempt < retryLimit - 1)
+      await waitActivityThemeSyncRetry()
+  }
+
+  return {
+    status: 'pending-cover',
+    activityId,
+    reason: 'server-theme-not-ready',
+  } satisfies ActivityThemeSyncResult
 }
 
 function recordGeneratedActivity(activity: AiGeneratedActivity | null | undefined) {
