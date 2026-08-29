@@ -1080,8 +1080,8 @@ const assistantPresentationQueues = new Map<string, Array<() => void>>()
 const assistantPresentationTimers = new Map<string, ReturnType<typeof setTimeout>>()
 let assistantTypewriterTickCount = 0
 const AI_ACTIVITY_THEME_STAGE = 'activity_edit' as const
-const AI_ACTIVITY_THEME_SYNC_RETRY_LIMIT = 6
-const AI_ACTIVITY_THEME_SYNC_RETRY_DELAY = 800
+const AI_ACTIVITY_THEME_SYNC_RETRY_LIMIT = 3
+const AI_ACTIVITY_THEME_SYNC_RETRY_DELAY = 250
 type ActivityThemeSyncStatus = 'synced' | 'pending-cover' | 'failed' | 'skipped'
 type ActivityThemeSyncResult = {
   status: ActivityThemeSyncStatus
@@ -1779,8 +1779,8 @@ watch(activityPreviewUrl, (nextUrl) => {
 }, { immediate: true })
 
 watch(
-  [activeMode, currentGeneratedActivityId, currentGeneratedActivityModelId, latestGeneratedActivityCoverImage, isMessageWorking],
-  async ([mode, activityId, activityModelId, coverImage, isWorking], _oldValue, onCleanup) => {
+  [activeMode, currentGeneratedActivityId, currentGeneratedActivityModelId, latestGeneratedActivityCoverImage],
+  async ([mode, activityId, activityModelId, coverImage], _oldValue, onCleanup) => {
     let cancelled = false
     onCleanup(() => {
       cancelled = true
@@ -1804,7 +1804,7 @@ watch(
     if (cancelled || mode !== activeMode.value || activityId !== currentGeneratedActivityId.value || activityModelId !== currentGeneratedActivityModelId.value)
       return
 
-    if (syncResult.status === 'pending-cover' && isWorking)
+    if (syncResult.status === 'pending-cover')
       return
 
     const syncUrl = buildActivityPreviewUrlSync(activityId, activityModelId)
@@ -3094,22 +3094,6 @@ function getActivityDetailBackgroundColor(detail: Record<string, any> | null | u
   ).trim()
 }
 
-async function reloadCurrentActivityPreviewFrame(activityId: number) {
-  if (activeMode.value !== 'activity' || activityId !== currentGeneratedActivityId.value)
-    return
-
-  const activityModelId = currentGeneratedActivityModelId.value
-  const fallbackUrl = buildActivityPreviewUrlSync(activityId, activityModelId)
-  const nextUrl = (await buildActivityPreviewUrl(activityId, activityModelId).catch(() => '')) || fallbackUrl
-  if (nextUrl) {
-    resolvedActivityPreviewUrl.value = nextUrl
-    queueActivityPreview(nextUrl)
-    return
-  }
-
-  displayedActivityPreviewKey.value += 1
-}
-
 function waitActivityThemeSyncRetry() {
   return new Promise(resolve => setTimeout(resolve, AI_ACTIVITY_THEME_SYNC_RETRY_DELAY))
 }
@@ -3126,15 +3110,19 @@ async function syncGeneratedActivityThemeFromCover(
     return { status: 'skipped' } satisfies ActivityThemeSyncResult
 
   // 背景色由后端在主图原始二进制阶段计算并写入 activities.background_color。
-  // 右侧预览只在同时读到主图和背景色后刷新，前端不再取色或回写活动。
+  // 右侧预览只在活动详情返回同一张主图和背景色后刷新，前端不再取色或回写活动。
+  const expectedCoverImg = String(options.coverImg || '').trim()
+  if (!expectedCoverImg) {
+    return { status: 'pending-cover', activityId, reason: 'generated-cover-not-ready' } satisfies ActivityThemeSyncResult
+  }
+
   const retryLimit = options.waitForCover ? AI_ACTIVITY_THEME_SYNC_RETRY_LIMIT : 1
   for (let attempt = 0; attempt < retryLimit; attempt += 1) {
     try {
       const detail = await api.activity.getActivityDetail(activityId, { stage: AI_ACTIVITY_THEME_STAGE }) as Record<string, any>
       const coverImg = getActivityDetailCoverImage(detail)
       const backgroundColor = getActivityDetailBackgroundColor(detail)
-      if (coverImg && backgroundColor) {
-        await reloadCurrentActivityPreviewFrame(activityId)
+      if (coverImg === expectedCoverImg && backgroundColor) {
         return {
           status: 'synced',
           activityId,
@@ -3166,10 +3154,6 @@ function recordGeneratedActivity(activity: AiGeneratedActivity | null | undefine
     return
 
   lastSuccessModalActivityId.value = activityId
-  void syncGeneratedActivityThemeFromCover(activity, {
-    coverImg: latestGeneratedActivityCoverImage.value,
-    waitForCover: true,
-  })
 }
 
 function openActivitySuccessModal() {
