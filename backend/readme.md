@@ -67,10 +67,7 @@ curl http://你的后端域名/merchant/v1/health
 | 方法       | 地址                                                             | 用途             |
 | -------- | -------------------------------------------------------------- | -------------- |
 | GET      | `/merchant/v1/health`                                          | 本地网关健康检查       |
-| POST     | `/common/v1/sendCode`                                          | 线上登录/注册验证码     |
-| POST     | `/merchant/v1/merchants`                                       | 线上商户注册         |
 | POST     | `/merchant/v1/merchants/login`                                 | 线上商户密码登录       |
-| POST     | `/merchant/v1/merchants/login/by/phone`                        | 线上商户验证码登录      |
 | GET      | `/merchant/v1/shops?order=desc`                                | 当前商户店铺列表       |
 | POST     | `/merchant/v1/patch/shops/{shop}/current`                      | 选择店铺并换发店铺令牌    |
 | GET      | `/merchant/v1/shop/ai/config`                                  | 对话页风格、尺寸、模型配置  |
@@ -80,8 +77,6 @@ curl http://你的后端域名/merchant/v1/health
 | POST     | `/merchant/v1/shop/ai/messages`                                | 创建用户消息和待生成助手消息 |
 | GET      | `/merchant/v1/shop/ai/messages/{messageId}/stream`             | SSE 流式生成       |
 | POST     | `/merchant/v1/shop/ai/messages/{messageId}/stop`               | 停止生成           |
-| GET      | `/merchant/v1/shop/ai/points`                                  | 灵点余额与体验次数      |
-| GET      | `/merchant/v1/shop/ai/points/ledgers`                          | 灵点流水分页         |
 | GET      | `/merchant/v1/shop/ai/inspirations`                            | AI 灵感推荐分页      |
 | GET      | `/merchant/v1/shop/ai/inspirations/{id}`                       | 灵感详情           |
 | GET      | `/merchant/v1/items`                                           | AI 选品卡片数据      |

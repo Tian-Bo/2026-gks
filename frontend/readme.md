@@ -38,7 +38,7 @@ npm run dev
 
 | 模块             | 位置                                                 | 说明           |
 | -------------- | -------------------------------------------------- | ------------ |
-| AI 会话、积分、提示词接口 | `standalone/api.ts`                                | 统一封装 AI 服务请求 |
+| AI 会话与提示词接口 | `standalone/api.ts`                                | 统一封装 AI 服务请求 |
 | 上传接口           | `standalone/request.ts`                            | 图片上传请求适配     |
 | 活动预览地址         | `standalone/activityPreviewUrl.ts`                 | 活动预览页地址解析    |
 | 商户存储与提示消息      | `standalone/storage.ts`、`standalone/klbMessage.ts` | 本地状态与提示消息    |
