@@ -560,8 +560,13 @@ onMounted(() => {
   })
   void fetchAiQuickPrompts()
   void fetchAiInspirationCards()
-  if (route.query.login === '1')
+  if (route.query.login === '1') {
     loginGuideOpen.value = true
+
+    const nextQuery = { ...route.query }
+    delete nextQuery.login
+    void router.replace({ path: route.path, query: nextQuery, hash: route.hash })
+  }
 })
 
 watch(activeMode, () => {

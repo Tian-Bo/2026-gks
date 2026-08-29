@@ -5923,8 +5923,8 @@ function downloadFile(url: string, fileName: string) {
 }
 
 .ai-chat-brand-logo {
-  width: 32px;
-  height: 32px;
+  width: 105px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
